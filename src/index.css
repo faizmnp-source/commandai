@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply font-body bg-gray-200 text-slate-900 antialiased;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scrollbar hide utility */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
+
+@layer components {
+  /* App shell — centered mobile card */
+  .app-shell {
+    @apply max-w-[430px] mx-auto min-h-screen bg-white relative overflow-hidden;
+    box-shadow: 0 0 80px rgba(0,0,0,.18);
+  }
+
+  /* Screen transition */
+  .screen {
+    @apply absolute inset-0 flex flex-col opacity-0 pointer-events-none;
+    transform: translateY(18px);
+    transition: opacity .28s ease, transform .28s ease;
+  }
+  .screen-active {
+    @apply opacity-100 pointer-events-auto z-[2];
+    transform: translateY(0);
+  }
+
+  /* Stat counters */
+  .stat-val {
+    @apply font-display text-[21px] font-bold tracking-tight text-slate-900;
+  }
+
+  /* Bubble styles */
+  .bubble-user {
+    @apply text-white rounded-[17px] rounded-br-[4px] px-[14px] py-[10px] text-sm leading-relaxed;
+    background: linear-gradient(135deg, #047857, #10b981);
+  }
+  .bubble-ai {
+    @apply bg-em-50 text-slate-900 border border-slate-100 rounded-[17px] rounded-bl-[4px] px-[14px] py-[10px] text-sm leading-relaxed;
+  }
+
+  /* Input field */
+  .inp {
+    @apply w-full px-[14px] py-[12px] border-[1.5px] border-slate-200 rounded-[10px]
+           text-[15px] font-body text-slate-900 bg-white outline-none
+           focus:border-em-500 focus:ring-2 focus:ring-em-500/10
+           transition-all duration-200;
+    -webkit-appearance: none;
+  }
+
+  /* Primary button */
+  .btn-em {
+    @apply w-full py-[14px] text-white text-[15px] font-semibold rounded-[10px]
+           border-none cursor-pointer transition-all duration-150 active:scale-[.98];
+    background: linear-gradient(135deg, #047857, #10b981);
+    box-shadow: 0 4px 14px rgba(5,150,105,.30);
+  }
+
+  /* Ghost button */
+  .btn-ghost {
+    @apply w-full py-[13px] text-em-700 text-[15px] font-semibold rounded-[10px]
+           border-[1.5px] border-em-200 bg-white cursor-pointer
+           transition-all duration-150 active:bg-em-50;
+  }
+}
+
+/* PWA safe area */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+}
