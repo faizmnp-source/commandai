@@ -26,6 +26,17 @@ export default function App() {
 
   return (
     <div className="app-shell">
+      {/* Cinematic ambient atmosphere */}
+      <div className="ambient-orbs" aria-hidden="true">
+        {/* Violet orb — upper right */}
+        <div style={{
+          position:'absolute', top:'-10%', right:'10%',
+          width:'45vw', height:'45vw',
+          background:'radial-gradient(ellipse, rgba(124,58,237,.07) 0%, transparent 65%)',
+          pointerEvents:'none',
+        }}/>
+      </div>
+
       {/* Desktop sidebar — only shown when authenticated */}
       {isAuthenticated && <Sidebar />}
 

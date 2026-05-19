@@ -13,8 +13,8 @@
 
   body {
     @apply font-body antialiased;
-    background: #f0f4f8;
-    color: #0f172a;
+    background: #07090e;
+    color: #f8fafc;
     min-height: 100vh;
     overflow-x: hidden;
   }
@@ -35,11 +35,12 @@
   /*  APP SHELL                                                  */
   /* ─────────────────────────────────────────────────────────── */
   .app-shell {
-    @apply relative flex bg-white;
+    @apply relative flex;
+    background: #07090e;
     min-height: 100vh;
     max-width: 430px;
     margin: 0 auto;
-    box-shadow: 0 0 80px rgba(0,0,0,.2);
+    box-shadow: 0 0 80px rgba(0,0,0,.5);
     overflow: hidden;
   }
 
@@ -49,7 +50,7 @@
       margin: 0;
       box-shadow: none;
       overflow: visible;
-      background: #f0f4f8;
+      background: #07090e;
     }
   }
 
@@ -81,7 +82,7 @@
     .screen-active {
       display: flex;
       pointer-events: auto;
-      background: #f0f4f8;
+      background: #07090e;
     }
   }
 
@@ -283,6 +284,160 @@
     background-size: 200% 100%;
     animation: shimmer 2.2s linear infinite;
   }
+}
+
+/* ── Cinematic Glass System ─────────────────────────────────── */
+
+  /* Ambient orbs — fixed background atmosphere */
+  .ambient-orbs {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+  .ambient-orbs::before {
+    content: '';
+    position: absolute;
+    top: -15%;
+    left: -5%;
+    width: 55vw;
+    height: 55vh;
+    background: radial-gradient(ellipse, rgba(16,185,129,.10) 0%, transparent 65%);
+    animation: orb-drift-a 18s ease-in-out infinite alternate;
+  }
+  .ambient-orbs::after {
+    content: '';
+    position: absolute;
+    bottom: -20%;
+    right: -8%;
+    width: 60vw;
+    height: 60vh;
+    background: radial-gradient(ellipse, rgba(37,99,235,.08) 0%, transparent 65%);
+    animation: orb-drift-b 22s ease-in-out infinite alternate;
+  }
+
+  /* Primary dark glass card */
+  .glass {
+    background: rgba(255,255,255,.038);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255,255,255,.08);
+    box-shadow:
+      0 8px 32px rgba(0,0,0,.55),
+      inset 0 1px 0 rgba(255,255,255,.10),
+      inset 0 -1px 0 rgba(0,0,0,.25);
+  }
+
+  /* Slightly more opaque glass for inner panels */
+  .glass-md {
+    background: rgba(255,255,255,.055);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid rgba(255,255,255,.10);
+    box-shadow:
+      0 4px 24px rgba(0,0,0,.45),
+      inset 0 1px 0 rgba(255,255,255,.12),
+      inset 0 -1px 0 rgba(0,0,0,.20);
+  }
+
+  /* Row item inside glass panel */
+  .glass-row {
+    background: rgba(255,255,255,.028);
+    border-bottom: 1px solid rgba(255,255,255,.05);
+    transition: background .15s ease;
+  }
+  .glass-row:hover { background: rgba(255,255,255,.05); }
+  .glass-row:last-child { border-bottom: none; }
+
+  /* Icon tile — gradient with glass shine */
+  .icon-tile {
+    position: relative;
+    overflow: hidden;
+    border-radius: 18px;
+    box-shadow:
+      0 6px 20px rgba(0,0,0,.45),
+      inset 0 1px 0 rgba(255,255,255,.22),
+      inset 0 -2px 0 rgba(0,0,0,.25);
+    transition: transform .14s ease, box-shadow .14s ease;
+  }
+  .icon-tile:hover  { transform: scale(1.06); }
+  .icon-tile:active { transform: scale(0.92); }
+  /* Glass shine — top half */
+  .icon-tile::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 52%;
+    background: linear-gradient(180deg, rgba(255,255,255,.26) 0%, transparent 100%);
+    border-radius: 18px 18px 0 0;
+    pointer-events: none;
+    z-index: 1;
+  }
+  /* Bottom depth shadow */
+  .icon-tile::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 35%;
+    background: linear-gradient(0deg, rgba(0,0,0,.30) 0%, transparent 100%);
+    border-radius: 0 0 18px 18px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Cinematic input */
+  .inp-dark {
+    width: 100%;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 12px;
+    padding: 11px 14px;
+    font-size: 14px;
+    color: rgba(255,255,255,.9);
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    -webkit-appearance: none;
+  }
+  .inp-dark::placeholder { color: rgba(255,255,255,.28); }
+  .inp-dark:focus {
+    border-color: rgba(16,185,129,.5);
+    box-shadow: 0 0 0 3px rgba(16,185,129,.12);
+  }
+
+  /* Cinematic section label */
+  .eyebrow {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.25);
+  }
+
+/* ── Keyframes ───────────────────────────────────────────────── */
+@keyframes orb-drift-a {
+  from { transform: translate(0,0) scale(1); }
+  to   { transform: translate(3vw, 4vh) scale(1.12); }
+}
+@keyframes orb-drift-b {
+  from { transform: translate(0,0) scale(1); }
+  to   { transform: translate(-4vw, -3vh) scale(1.08); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+@keyframes pulse-glow {
+  0%, 100% { opacity: .6; }
+  50%       { opacity: 1; }
+}
+@keyframes slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* ── PWA safe area ──────────────────────────────────────────── */
