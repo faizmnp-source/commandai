@@ -11,40 +11,80 @@
   }
 
   body {
-    @apply font-body bg-gray-200 text-slate-900 antialiased;
+    @apply font-body bg-slate-100 text-slate-900 antialiased;
     min-height: 100vh;
     overflow-x: hidden;
   }
 
-  /* Scrollbar hide utility */
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
 @layer components {
-  /* App shell — centered mobile card */
+
+  /* ── Mobile shell: centered card ──────────────────────────────── */
   .app-shell {
-    @apply max-w-[430px] mx-auto min-h-screen bg-white relative overflow-hidden;
+    @apply relative flex bg-white;
+    min-height: 100vh;
+
+    /* Mobile: centered narrow card */
+    max-width: 430px;
+    margin: 0 auto;
     box-shadow: 0 0 80px rgba(0,0,0,.18);
+    overflow: hidden;
   }
 
-  /* Screen transition */
+  /* ── Desktop shell: full-width sidebar layout ─────────────────── */
+  @media (min-width: 768px) {
+    .app-shell {
+      max-width: 100%;
+      margin: 0;
+      box-shadow: none;
+      overflow: visible;
+      background: #f1f5f9; /* slate-100 */
+    }
+  }
+
+  /* ── Screens ──────────────────────────────────────────────────── */
   .screen {
     @apply absolute inset-0 flex flex-col opacity-0 pointer-events-none;
-    transform: translateY(18px);
-    transition: opacity .28s ease, transform .28s ease;
+    transform: translateY(14px);
+    transition: opacity .24s ease, transform .24s ease;
   }
   .screen-active {
-    @apply opacity-100 pointer-events-auto z-[2];
+    @apply opacity-100 pointer-events-auto;
     transform: translateY(0);
+    z-index: 2;
   }
 
-  /* Stat counters */
+  /* Desktop: screens are relative inside the flex child div */
+  @media (min-width: 768px) {
+    .screen {
+      position: relative;
+      transform: none !important;
+      opacity: 1;
+      pointer-events: none;
+      display: none;
+      flex: 1;
+    }
+    .screen-active {
+      display: flex;
+      pointer-events: auto;
+      background: #f1f5f9;
+    }
+  }
+
+  /* ── Desktop content card wrapper (used inside screens) ─────── */
+  .desk-card {
+    @apply bg-white rounded-2xl shadow-sm border border-slate-200;
+  }
+
+  /* ── Typography ──────────────────────────────────────────────── */
   .stat-val {
     @apply font-display text-[21px] font-bold tracking-tight text-slate-900;
   }
 
-  /* Bubble styles */
+  /* ── Chat bubbles ────────────────────────────────────────────── */
   .bubble-user {
     @apply text-white rounded-[17px] rounded-br-[4px] px-[14px] py-[10px] text-sm leading-relaxed;
     background: linear-gradient(135deg, #047857, #10b981);
@@ -53,7 +93,7 @@
     @apply bg-em-50 text-slate-900 border border-slate-100 rounded-[17px] rounded-bl-[4px] px-[14px] py-[10px] text-sm leading-relaxed;
   }
 
-  /* Input field */
+  /* ── Form controls ───────────────────────────────────────────── */
   .inp {
     @apply w-full px-[14px] py-[12px] border-[1.5px] border-slate-200 rounded-[10px]
            text-[15px] font-body text-slate-900 bg-white outline-none
@@ -62,7 +102,6 @@
     -webkit-appearance: none;
   }
 
-  /* Primary button */
   .btn-em {
     @apply w-full py-[14px] text-white text-[15px] font-semibold rounded-[10px]
            border-none cursor-pointer transition-all duration-150 active:scale-[.98];
@@ -70,7 +109,6 @@
     box-shadow: 0 4px 14px rgba(5,150,105,.30);
   }
 
-  /* Ghost button */
   .btn-ghost {
     @apply w-full py-[13px] text-em-700 text-[15px] font-semibold rounded-[10px]
            border-[1.5px] border-em-200 bg-white cursor-pointer

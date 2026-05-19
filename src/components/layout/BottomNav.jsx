@@ -11,18 +11,18 @@ const TABS = [
 export default function BottomNav() {
   const { currentScreen, navigate } = useAppStore()
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px]
+    <nav className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px]
                     bg-white/90 backdrop-blur border-t border-slate-200 z-40
-                    flex items-end justify-around px-2 pb-safe pt-2"
+                    flex items-end justify-around px-2 pt-2"
          style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 8px)' }}>
       {TABS.map(tab => {
         const active = currentScreen === tab.id
         if (tab.elevated) return (
           <button key={tab.id} onClick={() => navigate(tab.id)}
             className="-mt-5 w-14 h-14 rounded-full bg-emerald-600 shadow-lg
-                       flex flex-col items-center justify-center gap-0.5
+                       flex flex-col items-center justify-center
                        active:scale-95 transition-transform">
-            <span className="text-xl">{tab.icon}</span>
+            <span className="text-2xl">{tab.icon}</span>
           </button>
         )
         return (

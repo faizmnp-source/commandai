@@ -1,6 +1,7 @@
 import useAppStore from './store/appStore'
 import BottomNav from './components/layout/BottomNav'
-import Toast from './components/ui/Toast'
+import Sidebar   from './components/layout/Sidebar'
+import Toast     from './components/ui/Toast'
 
 import LoginScreen    from './screens/LoginScreen'
 import DashboardScreen from './screens/DashboardScreen'
@@ -22,14 +23,24 @@ const SCREENS = {
 
 export default function App() {
   const { currentScreen, isAuthenticated } = useAppStore()
+
   return (
     <div className="app-shell">
-      {Object.entries(SCREENS).map(([id, Screen]) => (
-        <div key={id} className={`screen ${currentScreen === id ? 'screen-active' : ''}`}>
-          <Screen />
-        </div>
-      ))}
+      {/* Desktop sidebar — only shown when authenticated */}
+      {isAuthenticated && <Sidebar />}
+
+      {/* Screen content — offset by sidebar on desktop */}
+      <div className={`flex-1 flex flex-col overflow-hidden ${isAuthenticated ? 'md:ml-60' : ''}`}>
+        {Object.entries(SCREENS).map(([id, Screen]) => (
+          <div key={id} className={`screen ${currentScreen === id ? 'screen-active' : ''}`}>
+            <Screen />
+          </div>
+        ))}
+      </div>
+
+      {/* Mobile bottom nav */}
       {isAuthenticated && <BottomNav />}
+
       <Toast />
     </div>
   )

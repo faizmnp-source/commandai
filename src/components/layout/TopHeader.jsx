@@ -1,35 +1,28 @@
 import useAppStore from '../../store/appStore'
 
-export default function TopHeader({ title, subtitle, children }) {
-  const { user, navigate, showToast } = useAppStore()
+export default function TopHeader({ title, subtitle }) {
+  const { user } = useAppStore()
+  const initials = (user?.name || 'F')[0].toUpperCase()
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
   return (
-    <div className="flex items-center justify-between px-[18px] py-[14px] border-b border-slate-50
-                    bg-white flex-shrink-0 z-10">
+    <header className="flex items-center justify-between px-5 pt-safe pb-4 pt-5 bg-white
+                       md:px-8 md:pt-6 md:pb-5 md:border-b md:border-slate-200 flex-shrink-0">
       <div>
-        <h2 className="font-display text-[21px] font-bold tracking-tight">{title}</h2>
-        {subtitle && <p className="text-[11.5px] text-slate-400 mt-0.5">{subtitle}</p>}
+        <h1 className="text-[22px] md:text-2xl font-bold text-slate-900 leading-tight">{title}</h1>
+        {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
       </div>
-      <div className="flex gap-2 items-center">
-        {children}
-        <button
-          onClick={() => showToast('3 new notifications')}
-          className="w-9 h-9 rounded-[11px] bg-slate-50 border border-slate-100
-                     flex items-center justify-center text-[17px] cursor-pointer relative
-                     transition-all active:scale-95"
-        >
-          🔔
-          <span className="absolute top-1.5 right-1.5 w-[7px] h-[7px] bg-em-500 rounded-full border-2 border-white" />
+      {/* Desktop: hide avatar (sidebar shows it) | Mobile: show avatar */}
+      <div className="flex items-center gap-2 md:hidden">
+        <button className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100">
+          <span className="text-xl">🔔</span>
         </button>
-        <button
-          onClick={() => navigate('more')}
-          className="w-9 h-9 rounded-[11px] flex items-center justify-center text-[14px]
-                     font-bold text-white font-display cursor-pointer transition-all active:scale-95"
-          style={{ background: 'linear-gradient(135deg, #047857, #34d399)' }}
-        >
-          {user.avatar}
-        </button>
+        <div className="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center text-white text-sm font-bold">
+          {initials}
+        </div>
       </div>
-    </div>
+      {/* Desktop: show date */}
+      <p className="hidden md:block text-sm text-slate-400">{today}</p>
+    </header>
   )
 }

@@ -1,163 +1,137 @@
 import TopHeader from '../components/layout/TopHeader'
-import StatCard from '../components/dashboard/StatCard'
 import useAppStore from '../store/appStore'
+import useCounter from '../hooks/useCounter'
 
-const QUICK_ACTIONS = [
+function StatCard({ label, value, prefix = '', suffix = '', delta, color = 'em' }) {
+  const count = useCounter(value, 1400)
+  const colors = {
+    em:  { bg: 'bg-em-50',      text: 'text-em-700',      ring: 'ring-em-200'      },
+    sky: { bg: 'bg-sky-50',     text: 'text-sky-700',     ring: 'ring-sky-200'     },
+    vio: { bg: 'bg-violet-50',  text: 'text-violet-700',  ring: 'ring-violet-200'  },
+    ora: { bg: 'bg-orange-50',  text: 'text-orange-700',  ring: 'ring-orange-200'  },
+  }
+  const c = colors[color] || colors.em
+  return (
+    <div className={`${c.bg} ring-1 ${c.ring} rounded-2xl p-4 flex flex-col gap-1`}>
+      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</p>
+      <p className={`text-2xl font-bold ${c.text}`}>{prefix}{count.toLocaleString()}{suffix}</p>
+      {delta && <p className="text-xs text-slate-400">{delta}</p>}
+    </div>
+  )
+}
+
+const QUICK = [
   { icon: '🤖', label: 'Ask AI',   screen: 'chat' },
-  { icon: '📄', label: 'Invoice',  screen: null, toast: 'Invoice creator — Phase 2' },
+  { icon: '🧾', label: 'Invoice',  screen: 'finance' },
   { icon: '➕', label: 'Add Lead', screen: 'crm' },
-  { icon: '📋', label: 'New Task', screen: 'projects' },
-  { icon: '📊', label: 'Reports',  screen: null, toast: 'Analytics — Phase 3' },
-  { icon: '💸', label: 'Expense',  screen: null, toast: 'Expense tracking — Phase 2' },
-  { icon: '🧑‍💼', label: 'Team',   screen: null, toast: 'Team module — Phase 3' },
+  { icon: '✅', label: 'New Task', screen: 'projects' },
+  { icon: '📊', label: 'Reports',  screen: 'finance' },
+  { icon: '💸', label: 'Expense',  screen: 'finance' },
+]
+
+const ACTIVITY = [
+  { icon: '💰', title: 'Invoice #1042 paid by Apex Co.',       sub: '$1,800 received · Finance',      time: '2m' },
+  { icon: '👤', title: 'New lead: Sarah Johnson (TechCorp)',    sub: 'Added to pipeline · CRM',         time: '1h' },
+  { icon: '✅', title: 'Task "Q2 Report" completed',            sub: 'By Ahmed K. · Projects',          time: '3h' },
+  { icon: '📦', title: 'Low stock: Product SKU-204',           sub: '8 units left · Inventory',        time: '5h' },
+  { icon: '🤖', title: 'AI sent 3 automated follow-ups',       sub: 'TechCorp, Zara Ltd, BuildCo · CRM', time: '9h' },
 ]
 
 export default function DashboardScreen() {
-  const { user, metrics, activity, navigate, showToast } = useAppStore()
-
-  const today = new Date().toLocaleDateString('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric',
-  })
-
-  const handleAction = (item) => {
-    if (item.screen) navigate(item.screen)
-    else if (item.toast) showToast(item.toast)
-  }
+  const { navigate, user } = useAppStore()
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+  const hour  = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
 
   return (
-    <>
+    <div className="flex flex-col h-full bg-slate-50 overflow-y-auto">
       <TopHeader title="Dashboard" subtitle={today} />
 
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-[84px]">
+      {/* Desktop: max-width content wrapper */}
+      <div className="flex-1 px-4 pb-24 md:pb-8 md:px-8 md:max-w-5xl md:w-full space-y-5 pt-1">
 
         {/* Greeting */}
-        <div className="px-[18px] pt-[18px] pb-0 animate-fade-up">
-          <h2 className="font-display text-[25px] font-bold tracking-tight leading-[1.2]">
-            Good morning, <span className="text-em-600">{user.name}</span> 👋
-          </h2>
-          <p className="text-[13px] text-slate-400 mt-[5px]">Here's your business at a glance</p>
+        <div className="bg-gradient-to-br from-emerald-600 to-emerald-400 rounded-2xl p-5 text-white shadow-lg">
+          <p className="text-sm font-medium opacity-80">{greeting}, {user?.name?.split(' ')[0] || 'Faizan'} 👋</p>
+          <p className="text-lg font-bold mt-1">Here's your business snapshot</p>
+          <p className="text-xs opacity-70 mt-1">3 deals need attention · 2 invoices overdue</p>
         </div>
 
-        {/* AI Brief */}
-        <div
-          className="mx-[18px] mt-[14px] rounded-[28px] p-[18px] cursor-pointer relative overflow-hidden
-                     transition-transform duration-150 active:scale-[.98] animate-fade-up"
-          style={{
-            background: 'linear-gradient(145deg, #065f46 0%, #047857 45%, #058757 100%)',
-            animationDelay: '.05s',
-          }}
-          onClick={() => navigate('chat')}
-        >
-          {/* Glow blobs */}
-          <div className="absolute -top-10 -right-10 w-[140px] h-[140px] rounded-full pointer-events-none"
-               style={{ background: 'radial-gradient(circle, rgba(52,211,153,.25) 0%, transparent 70%)' }} />
-          <div className="absolute -bottom-8 left-5 w-[90px] h-[90px] rounded-full pointer-events-none"
-               style={{ background: 'radial-gradient(circle, rgba(16,185,129,.18) 0%, transparent 70%)' }} />
+        {/* KPI grid — 2 cols mobile, 4 cols desktop */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <StatCard label="Revenue"        value={68300} prefix="$"  delta="↑ 12% vs last month" color="em"  />
+          <StatCard label="Active Tasks"   value={12}               delta="3 due today"           color="sky" />
+          <StatCard label="Customers"      value={48}               delta="+8 this week"          color="vio" />
+          <StatCard label="Pending Invoices" value={4200} prefix="$" delta="$4.2k overdue"        color="ora" />
+        </div>
 
-          <div className="flex items-center gap-[5px] bg-white/[.14] rounded-full px-[10px] py-[3px]
-                          w-fit text-[10px] font-bold text-white/90 uppercase tracking-[.6px] mb-[10px]">
-            <span className="w-[5px] h-[5px] bg-green-400 rounded-full animate-pulse-dot" />
-            AI Daily Brief
-          </div>
-
-          <p className="text-[13.5px] text-white/92 leading-relaxed relative z-10">
-            Revenue is up <strong className="text-green-400">12%</strong> from last week.
-            You have 3 overdue invoices totalling $4,200. Your top lead{' '}
-            <strong className="text-white">TechCorp</strong> hasn't been followed up in 5 days — tap to draft a message.
-          </p>
-
-          <div className="flex items-center justify-between mt-[13px] relative z-10">
-            <span className="text-[12px] text-white/65 font-medium">Tap to ask AI anything →</span>
-            <span className="text-[20px]">🧠</span>
+        {/* Quick actions */}
+        <div>
+          <p className="text-sm font-semibold text-slate-500 mb-3 uppercase tracking-wide">Quick Actions</p>
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+            {QUICK.map(({ icon, label, screen }) => (
+              <button key={label} onClick={() => navigate(screen)}
+                className="bg-white border border-slate-200 rounded-2xl py-4 flex flex-col items-center gap-2
+                           hover:border-emerald-300 hover:bg-emerald-50 active:scale-95 transition-all shadow-sm">
+                <span className="text-2xl">{icon}</span>
+                <span className="text-xs font-semibold text-slate-600">{label}</span>
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-[10px] px-[18px] mt-[14px] animate-fade-up"
-             style={{ animationDelay: '.10s' }}>
-          <StatCard
-            emoji="💰" target={metrics.revenue.value}
-            prefix="$" suffix="k"
-            label={metrics.revenue.label}
-            delta={metrics.revenue.delta} positive={metrics.revenue.positive}
-            onClick={() => showToast('Finance module — Phase 2')}
-          />
-          <StatCard
-            emoji="✅" target={metrics.tasks.value}
-            label={metrics.tasks.label}
-            delta={metrics.tasks.delta} positive={metrics.tasks.positive}
-            onClick={() => navigate('projects')}
-          />
-          <StatCard
-            emoji="👥" target={metrics.customers.value}
-            label={metrics.customers.label}
-            delta={metrics.customers.delta} positive={metrics.customers.positive}
-            onClick={() => navigate('crm')}
-          />
-          <StatCard
-            emoji="📄" target={metrics.invoices.value}
-            label={metrics.invoices.label}
-            delta={metrics.invoices.delta} positive={metrics.invoices.positive}
-            onClick={() => showToast('Finance module — Phase 2')}
-          />
-        </div>
-
-        {/* Quick Actions */}
-        <div className="px-[18px] mt-[18px] mb-[10px] flex items-center justify-between animate-fade-up"
-             style={{ animationDelay: '.15s' }}>
-          <h3 className="font-display text-[15px] font-bold">Quick Actions</h3>
-        </div>
-        <div className="flex gap-[9px] px-[18px] overflow-x-auto no-scrollbar pb-1
-                        animate-fade-up" style={{ animationDelay: '.15s' }}>
-          {QUICK_ACTIONS.map((item) => (
-            <button
-              key={item.label}
-              onClick={() => handleAction(item)}
-              className="flex flex-col items-center gap-[6px] min-w-[62px] cursor-pointer
-                         flex-shrink-0 bg-transparent border-none outline-none"
-            >
-              <div className="w-[50px] h-[50px] rounded-[15px] bg-em-50 border-[1.5px] border-em-100
-                              flex items-center justify-center text-[20px] transition-all duration-150
-                              active:scale-[.91] active:bg-em-100">
-                {item.icon}
-              </div>
-              <span className="text-[10.5px] text-slate-600 font-medium text-center whitespace-nowrap">
-                {item.label}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {/* Activity Feed */}
-        <div className="px-[18px] mt-[18px] flex items-center justify-between animate-fade-up"
-             style={{ animationDelay: '.20s' }}>
-          <h3 className="font-display text-[15px] font-bold">Recent Activity</h3>
-          <button className="text-[12px] text-em-600 font-semibold bg-transparent border-none cursor-pointer"
-                  onClick={() => showToast('Full activity log — Phase 2')}>
-            See all
-          </button>
-        </div>
-        <div className="px-[18px] mt-[10px] flex flex-col animate-fade-up" style={{ animationDelay: '.25s' }}>
-          {activity.map((item, i) => (
-            <div
-              key={item.id}
-              className={`flex items-center gap-[11px] py-[11px] cursor-pointer
-                          ${i < activity.length - 1 ? 'border-b border-slate-50' : ''}`}
-            >
-              <div className="w-[34px] h-[34px] rounded-[10px] bg-em-50 flex items-center
-                              justify-center text-[15px] flex-shrink-0">
-                {item.icon}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-medium text-slate-900 truncate">{item.title}</div>
-                <div className="text-[11px] text-slate-400 mt-0.5">{item.sub}</div>
-              </div>
-              <span className="text-[10px] text-slate-300 flex-shrink-0">{item.time}</span>
+        {/* Desktop: 2-col layout for activity + AI brief */}
+        <div className="md:grid md:grid-cols-2 md:gap-5 space-y-5 md:space-y-0">
+          {/* Recent Activity */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <p className="font-semibold text-slate-800">Recent Activity</p>
+              <button className="text-xs text-emerald-600 font-semibold">See all</button>
             </div>
-          ))}
+            <div className="divide-y divide-slate-100">
+              {ACTIVITY.map((a, i) => (
+                <div key={i} className="flex items-start gap-3 px-5 py-3.5">
+                  <span className="text-xl flex-shrink-0 mt-0.5">{a.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-800 truncate">{a.title}</p>
+                    <p className="text-xs text-slate-400 truncate">{a.sub}</p>
+                  </div>
+                  <span className="text-xs text-slate-300 whitespace-nowrap">{a.time}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* AI Brief */}
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-5 text-white shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-base">🤖</div>
+              <div>
+                <p className="text-sm font-bold">AI Daily Brief</p>
+                <p className="text-[10px] text-slate-400">CommandAI Analysis</p>
+              </div>
+            </div>
+            <div className="space-y-3 text-sm">
+              <div className="bg-white/10 rounded-xl p-3">
+                <p className="font-semibold text-emerald-400 text-xs mb-1">💡 Top Priority</p>
+                <p className="text-xs text-slate-300 leading-relaxed">TechCorp proposal is 2 days overdue. Send follow-up now to keep the $12k deal alive.</p>
+              </div>
+              <div className="bg-white/10 rounded-xl p-3">
+                <p className="font-semibold text-amber-400 text-xs mb-1">⚠️ Cash Flow Alert</p>
+                <p className="text-xs text-slate-300 leading-relaxed">GreenPath invoice ($2.5k) is 5 days overdue. Consider sending a reminder today.</p>
+              </div>
+              <div className="bg-white/10 rounded-xl p-3">
+                <p className="font-semibold text-sky-400 text-xs mb-1">📈 Opportunity</p>
+                <p className="text-xs text-slate-300 leading-relaxed">Nova Studios deposit received. Kickoff the project to maintain momentum.</p>
+              </div>
+            </div>
+            <button onClick={() => navigate('chat')} className="mt-4 w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-sm font-semibold transition-colors">
+              Ask AI anything →
+            </button>
+          </div>
         </div>
 
       </div>
-    </>
+    </div>
   )
 }
