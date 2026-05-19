@@ -30,7 +30,7 @@ export default function App() {
       {isAuthenticated && <Sidebar />}
 
       {/* Screen content — offset by sidebar on desktop */}
-      <div className={`flex-1 flex flex-col overflow-hidden ${isAuthenticated ? 'md:ml-60' : ''}`}>
+      <div className={`flex-1 flex flex-col overflow-hidden ${isAuthenticated ? 'md:ml-64' : ''}`}>
         {Object.entries(SCREENS).map(([id, Screen]) => (
           <div key={id} className={`screen ${currentScreen === id ? 'screen-active' : ''}`}>
             <Screen />
