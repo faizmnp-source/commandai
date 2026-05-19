@@ -1,6 +1,6 @@
 import TopHeader from '../components/layout/TopHeader'
 import useAppStore from '../store/appStore'
-import useCounter from '../hooks/useCounter'
+import { useCounter } from '../hooks/useCounter'
 
 function StatCard({ label, value, prefix = '', suffix = '', delta, color = 'em' }) {
   const count = useCounter(value, 1400)
