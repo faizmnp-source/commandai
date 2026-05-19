@@ -1,453 +1,367 @@
 import { useState } from 'react'
 import TopHeader from '../components/layout/TopHeader'
 
-/* ── Sparkline ────────────────────────────────────────────── */
-function Spark({ data, color = 'rgba(255,255,255,.8)', w = 110, h = 38 }) {
-  const max = Math.max(...data), min = Math.min(...data), range = max - min || 1
-  const pts = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * w
-    const y = h - ((v - min) / range) * (h - 6) - 3
-    return `${x.toFixed(1)},${y.toFixed(1)}`
-  }).join(' ')
+/* ── Micro sparkline ──────────────────────────────────────── */
+function Spark({ data, color, w = 80, h = 28 }) {
+  const max = Math.max(...data), min = Math.min(...data), r = max - min || 1
+  const pts = data.map((v, i) => `${((i / (data.length - 1)) * w).toFixed(1)},${(h - ((v - min) / r) * (h - 4) - 2).toFixed(1)}`).join(' ')
   const [lx, ly] = pts.split(' ').at(-1).split(',')
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="2.2"
-        strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />
-      <circle cx={lx} cy={ly} r="3.5" fill={color} />
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" />
+      <circle cx={lx} cy={ly} r="2.5" fill={color} />
     </svg>
   )
 }
 
-/* ── Trend Arrow ──────────────────────────────────────────── */
-const Up   = () => <span style={{ color: '#4ade80', fontSize: 11, fontWeight: 700 }}>↑</span>
-const Down = () => <span style={{ color: '#f87171', fontSize: 11, fontWeight: 700 }}>↓</span>
-
-/* ── Model Card ───────────────────────────────────────────── */
-function ModelCard({ gradient, glow, icon, module, title, badge, badgeBg, kpis, spark, sparkColor, onOpen }) {
-  return (
-    <div
-      onClick={onOpen}
-      className="rounded-[22px] p-5 cursor-pointer active:scale-[.97] transition-all duration-150 relative overflow-hidden"
-      style={{ background: gradient, boxShadow: `0 8px 32px ${glow}, 0 2px 8px rgba(0,0,0,.12)` }}
-    >
-      {/* Top-right glow orb */}
-      <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full pointer-events-none"
-        style={{ background: 'rgba(255,255,255,.12)', filter: 'blur(20px)' }} />
-      {/* Bottom-left subtle gradient */}
-      <div className="absolute bottom-0 left-0 w-full h-1/2 pointer-events-none"
-        style={{ background: 'linear-gradient(to top, rgba(0,0,0,.1), transparent)' }} />
-
-      {/* Header row */}
-      <div className="flex items-start justify-between mb-3 relative z-10">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0"
-            style={{ background: 'rgba(255,255,255,.2)', backdropFilter: 'blur(8px)' }}>
-            {icon}
-          </div>
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,.6)' }}>{module}</p>
-            <p className="text-[15px] font-bold text-white leading-tight">{title}</p>
-          </div>
-        </div>
-        <span className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ background: badgeBg, color: 'white' }}>{badge}</span>
-      </div>
-
-      {/* KPI row */}
-      <div className="flex gap-4 mb-4 relative z-10">
-        {kpis.map(({ label, value, trend }) => (
-          <div key={label}>
-            <div className="flex items-center gap-1">
-              <p className="text-white font-bold" style={{ fontSize: 17, letterSpacing: '-0.02em' }}>{value}</p>
-              {trend === 'up' ? <Up /> : trend === 'down' ? <Down /> : null}
-            </div>
-            <p className="text-[10px] font-medium" style={{ color: 'rgba(255,255,255,.55)' }}>{label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Sparkline + Open button */}
-      <div className="flex items-end justify-between relative z-10">
-        <Spark data={spark} color={sparkColor} />
-        <button
-          className="flex items-center gap-1.5 text-[11px] font-bold text-white rounded-xl transition-all"
-          style={{ background: 'rgba(255,255,255,.18)', backdropFilter: 'blur(10px)', padding: '6px 12px' }}
-        >
-          Open Model
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-        </button>
-      </div>
-    </div>
-  )
-}
-
-/* ── Coming Soon Card ─────────────────────────────────────── */
-function ComingSoonCard({ icon, title, module }) {
-  return (
-    <div className="rounded-[22px] p-5 relative overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, #1e293b, #0f172a)', border: '1px solid rgba(255,255,255,.07)' }}>
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0"
-          style={{ background: 'rgba(255,255,255,.06)' }}>{icon}</div>
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">{module}</p>
-          <p className="text-[15px] font-bold text-slate-400">{title}</p>
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-700 text-slate-400">Coming Soon</span>
-      </div>
-    </div>
-  )
-}
-
-/* ── Drawer ───────────────────────────────────────────────── */
-function Drawer({ card, onClose }) {
-  if (!card) return null
-  return (
-    <div className="absolute inset-0 z-50 flex flex-col" onClick={onClose}
-      style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(4px)' }}>
-      <div className="flex-1 min-h-[80px]" />
-      <div
-        className="bg-white rounded-t-[28px] flex flex-col overflow-hidden animate-slide-up"
-        style={{ maxHeight: '82vh' }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-          <div className="w-10 h-1 rounded-full bg-slate-200" />
-        </div>
-
-        {/* Drawer header */}
-        <div className="flex items-center justify-between px-5 py-3 flex-shrink-0"
-          style={{ borderBottom: '1px solid rgba(226,232,240,.8)' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-              style={{ background: card.gradient, boxShadow: `0 4px 12px ${card.glow}` }}>
-              {card.icon}
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{card.module}</p>
-              <p className="font-bold text-slate-900 text-[15px] leading-tight">{card.title}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-sm">✕</button>
-        </div>
-
-        {/* Scrollable content */}
-        <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
-
-          {/* KPI Grid */}
-          <div className="grid grid-cols-2 gap-3">
-            {card.detail.kpis.map(({ label, value, sub, color }) => (
-              <div key={label} className="rounded-2xl p-3.5" style={{ background: '#f8fafc', border: '1px solid rgba(226,232,240,.8)' }}>
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">{label}</p>
-                <p className="font-bold text-slate-900" style={{ fontSize: 20, letterSpacing: '-0.03em', color: color || '#0f172a' }}>{value}</p>
-                {sub && <p className="text-[10px] text-slate-400 mt-0.5">{sub}</p>}
-              </div>
-            ))}
-          </div>
-
-          {/* Financial Table */}
-          <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(226,232,240,.8)' }}>
-            <div className="px-4 py-2.5 flex-shrink-0" style={{ background: '#f8fafc', borderBottom: '1px solid rgba(226,232,240,.8)' }}>
-              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{card.detail.tableTitle}</p>
-            </div>
-            {card.detail.rows.map(({ label, value, highlight, sub }, i) => (
-              <div key={i}
-                className="flex items-center justify-between px-4 py-2.5"
-                style={{
-                  borderBottom: i < card.detail.rows.length - 1 ? '1px solid rgba(226,232,240,.5)' : 'none',
-                  background: highlight ? 'rgba(16,185,129,.04)' : 'white',
-                }}
-              >
-                <div>
-                  <p className={`text-sm ${highlight ? 'font-bold text-slate-900' : 'font-medium text-slate-600'}`}>{label}</p>
-                  {sub && <p className="text-[10px] text-slate-400">{sub}</p>}
-                </div>
-                <p className={`text-sm font-bold tabular-nums ${highlight ? 'text-emerald-600' : 'text-slate-800'}`}>{value}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Claude AI Report button */}
-          <button
-            className="w-full rounded-2xl py-3.5 font-bold text-sm flex items-center justify-center gap-2"
-            style={{ background: 'linear-gradient(135deg, #0f172a, #1e293b)', color: 'white', boxShadow: '0 4px 16px rgba(0,0,0,.15)' }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>
-            Generate AI Report with Claude
-          </button>
-
-          <div className="pb-6" />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/* ── Model Data ───────────────────────────────────────────── */
+/* ── Model tile data ──────────────────────────────────────── */
 const MODELS = [
   {
     id: 'pl',
-    gradient: 'linear-gradient(135deg, #059669 0%, #0d9488 100%)',
-    glow: 'rgba(5,150,105,.35)',
-    icon: '📈',
-    module: 'Financial Statements',
-    title: 'P&L / Income Statement',
-    badge: 'Profitable',
-    badgeBg: 'rgba(0,0,0,.25)',
-    kpis: [
-      { label: 'Revenue',    value: '$68.3k', trend: 'up'   },
-      { label: 'Net Income', value: '$54.0k', trend: 'up'   },
-      { label: 'Margin',     value: '79%',    trend: 'up'   },
-    ],
-    spark: [40, 45, 42, 55, 58, 54, 62, 68, 65, 72],
-    sparkColor: 'rgba(187,247,208,.9)',
+    accent: '#059669',
+    bg: '#f0fdf4',
+    label: 'P&L Statement',
+    module: 'Income',
+    kpi: '$68.3k',
+    kpiLabel: 'Revenue MTD',
+    kpi2: '79%',
+    kpi2Label: 'Net Margin',
+    status: 'Profitable',
+    ok: true,
+    spark: [40,45,42,55,58,54,62,68,65,72],
     detail: {
       kpis: [
-        { label: 'Total Revenue',   value: '$68,300', sub: '↑ 12% vs last month', color: '#059669' },
-        { label: 'Gross Profit',    value: '$61,200', sub: 'Gross margin 89.6%',  color: '#0f172a' },
-        { label: 'Operating Exp',   value: '$7,300',  sub: 'Payroll + SaaS',      color: '#ef4444' },
-        { label: 'Net Income',      value: '$54,000', sub: 'Net margin 79%',      color: '#059669' },
+        { l: 'Revenue',       v: '$68,300', c: '#059669' },
+        { l: 'Gross Profit',  v: '$61,200', c: '#0f172a' },
+        { l: 'Operating Exp', v: '$7,300',  c: '#ef4444' },
+        { l: 'Net Income',    v: '$54,000', c: '#059669' },
       ],
       tableTitle: 'Income Statement — May 2026',
       rows: [
-        { label: 'Revenue',                 value: '$68,300' },
-        { label: '  SaaS Subscriptions',    value: '$42,000', sub: 'MRR' },
-        { label: '  Consulting',            value: '$18,300' },
-        { label: '  Professional Services', value: '$8,000'  },
-        { label: 'Cost of Revenue',         value: '($7,100)' },
-        { label: 'Gross Profit',            value: '$61,200', highlight: true },
-        { label: 'Operating Expenses',      value: '($7,200)' },
-        { label: '  Payroll',               value: '($4,800)' },
-        { label: '  Software & Tools',      value: '($1,400)' },
-        { label: '  Marketing',             value: '($1,000)' },
-        { label: 'EBITDA',                  value: '$54,000', highlight: true },
-        { label: 'Net Income',              value: '$54,000', highlight: true },
+        { l: 'Revenue',                 v: '$68,300' },
+        { l: '  SaaS Subscriptions',    v: '$42,000' },
+        { l: '  Consulting',            v: '$18,300' },
+        { l: '  Professional Services', v: '$8,000'  },
+        { l: 'Cost of Revenue',         v: '($7,100)' },
+        { l: 'Gross Profit',            v: '$61,200', h: true },
+        { l: 'Operating Expenses',      v: '($7,200)' },
+        { l: 'Net Income',              v: '$54,000', h: true },
       ],
     },
   },
   {
     id: 'bs',
-    gradient: 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)',
-    glow: 'rgba(37,99,235,.35)',
-    icon: '⚖️',
-    module: 'Financial Statements',
-    title: 'Balance Sheet',
-    badge: 'Strong',
-    badgeBg: 'rgba(0,0,0,.25)',
-    kpis: [
-      { label: 'Total Assets',  value: '$142k', trend: 'up' },
-      { label: 'Equity',        value: '$98k',  trend: 'up' },
-      { label: 'Debt/Equity',   value: '0.45'              },
-    ],
-    spark: [80, 88, 92, 98, 102, 108, 115, 120, 132, 142],
-    sparkColor: 'rgba(199,210,254,.9)',
+    accent: '#2563eb',
+    bg: '#eff6ff',
+    label: 'Balance Sheet',
+    module: 'Assets',
+    kpi: '$142k',
+    kpiLabel: 'Total Assets',
+    kpi2: '$98k',
+    kpi2Label: 'Total Equity',
+    status: 'Strong',
+    ok: true,
+    spark: [80,88,92,98,102,108,115,120,132,142],
     detail: {
       kpis: [
-        { label: 'Total Assets',      value: '$142,000', sub: '↑ 8% vs Q1',       color: '#2563eb' },
-        { label: 'Current Assets',    value: '$89,000',  sub: 'Cash + Receivables', color: '#0f172a' },
-        { label: 'Total Liabilities', value: '$44,000',  sub: 'Long-term debt',    color: '#ef4444' },
-        { label: 'Total Equity',      value: '$98,000',  sub: 'Retained earnings', color: '#059669' },
+        { l: 'Total Assets',      v: '$142,000', c: '#2563eb' },
+        { l: 'Current Assets',    v: '$89,000',  c: '#0f172a' },
+        { l: 'Total Liabilities', v: '$44,000',  c: '#ef4444' },
+        { l: 'Total Equity',      v: '$98,000',  c: '#059669' },
       ],
       tableTitle: 'Balance Sheet — May 2026',
       rows: [
-        { label: 'ASSETS',                     value: '' },
-        { label: '  Cash & Equivalents',       value: '$54,000' },
-        { label: '  Accounts Receivable',      value: '$28,000' },
-        { label: '  Prepaid Expenses',         value: '$7,000'  },
-        { label: '  Fixed Assets (net)',        value: '$53,000' },
-        { label: 'Total Assets',               value: '$142,000', highlight: true },
-        { label: 'LIABILITIES',                value: '' },
-        { label: '  Accounts Payable',         value: '$12,000' },
-        { label: '  Deferred Revenue',         value: '$18,000' },
-        { label: '  Long-term Debt',           value: '$14,000' },
-        { label: 'Total Liabilities',          value: '$44,000',  highlight: true },
-        { label: 'Total Equity',               value: '$98,000',  highlight: true },
+        { l: 'Cash & Equivalents',   v: '$54,000' },
+        { l: 'Accounts Receivable',  v: '$28,000' },
+        { l: 'Fixed Assets (net)',   v: '$53,000' },
+        { l: 'Total Assets',         v: '$142,000', h: true },
+        { l: 'Accounts Payable',     v: '$12,000' },
+        { l: 'Deferred Revenue',     v: '$18,000' },
+        { l: 'Total Liabilities',    v: '$44,000', h: true },
+        { l: 'Total Equity',         v: '$98,000', h: true },
       ],
     },
   },
   {
     id: 'cf',
-    gradient: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)',
-    glow: 'rgba(2,132,199,.35)',
-    icon: '💧',
-    module: 'Cash Management',
-    title: 'Cash Flow Statement',
-    badge: 'Healthy',
-    badgeBg: 'rgba(0,0,0,.25)',
-    kpis: [
-      { label: 'Operating CF', value: '$54k',  trend: 'up'   },
-      { label: 'Free CF',      value: '$48k',  trend: 'up'   },
-      { label: 'Runway',       value: '14 mo'               },
-    ],
-    spark: [30, 38, 35, 42, 40, 48, 46, 52, 50, 54],
-    sparkColor: 'rgba(186,230,253,.9)',
+    accent: '#0284c7',
+    bg: '#f0f9ff',
+    label: 'Cash Flow',
+    module: 'Treasury',
+    kpi: '$54k',
+    kpiLabel: 'Operating CF',
+    kpi2: '14 mo',
+    kpi2Label: 'Cash Runway',
+    status: 'Healthy',
+    ok: true,
+    spark: [30,38,35,42,40,48,46,52,50,54],
     detail: {
       kpis: [
-        { label: 'Operating CF',   value: '$54,000', sub: 'From core ops',       color: '#0284c7' },
-        { label: 'Investing CF',   value: '($6,000)',sub: 'Capex & investments',  color: '#ef4444' },
-        { label: 'Free Cash Flow', value: '$48,000', sub: 'Operating - Capex',   color: '#059669' },
-        { label: 'Cash Runway',    value: '14 mo',   sub: 'At current burn rate', color: '#0f172a' },
+        { l: 'Operating CF',    v: '$54,000', c: '#0284c7' },
+        { l: 'Investing CF',    v: '($6,000)', c: '#ef4444' },
+        { l: 'Free Cash Flow',  v: '$48,000', c: '#059669' },
+        { l: 'Cash Runway',     v: '14 mo',   c: '#0f172a' },
       ],
-      tableTitle: 'Cash Flow Statement — May 2026',
+      tableTitle: 'Cash Flow — May 2026',
       rows: [
-        { label: 'Operating Activities',       value: '' },
-        { label: '  Net Income',               value: '$54,000' },
-        { label: '  Depreciation & Amort.',    value: '$1,200'  },
-        { label: '  Changes in Working Cap.',  value: '($1,200)' },
-        { label: 'Net Operating CF',           value: '$54,000', highlight: true },
-        { label: 'Investing Activities',       value: '' },
-        { label: '  Capital Expenditures',     value: '($6,000)' },
-        { label: 'Net Investing CF',           value: '($6,000)', highlight: true },
-        { label: 'Financing Activities',       value: '' },
-        { label: '  Loan Repayments',          value: '($2,000)' },
-        { label: 'Net Financing CF',           value: '($2,000)', highlight: true },
-        { label: 'Net Change in Cash',         value: '$46,000',  highlight: true },
+        { l: 'Net Income',              v: '$54,000' },
+        { l: 'Depreciation',            v: '$1,200'  },
+        { l: 'Net Operating CF',        v: '$54,000', h: true },
+        { l: 'Capital Expenditures',    v: '($6,000)' },
+        { l: 'Net Investing CF',        v: '($6,000)', h: true },
+        { l: 'Loan Repayments',         v: '($2,000)' },
+        { l: 'Net Financing CF',        v: '($2,000)', h: true },
+        { l: 'Net Change in Cash',      v: '$46,000', h: true },
       ],
     },
   },
   {
     id: 'sales',
-    gradient: 'linear-gradient(135deg, #ea580c 0%, #f59e0b 100%)',
-    glow: 'rgba(234,88,12,.35)',
-    icon: '🎯',
-    module: 'Revenue Intelligence',
-    title: 'Sales & Forecast',
-    badge: 'On Track',
-    badgeBg: 'rgba(0,0,0,.25)',
-    kpis: [
-      { label: 'Pipeline',    value: '$82k', trend: 'up'  },
-      { label: 'Won Q2',      value: '$50k', trend: 'up'  },
-      { label: 'Conversion',  value: '38%'               },
-    ],
-    spark: [20, 28, 32, 30, 38, 42, 40, 48, 45, 50],
-    sparkColor: 'rgba(254,215,170,.9)',
+    accent: '#ea580c',
+    bg: '#fff7ed',
+    label: 'Sales Forecast',
+    module: 'Revenue',
+    kpi: '$82k',
+    kpiLabel: 'Active Pipeline',
+    kpi2: '38%',
+    kpi2Label: 'Win Rate',
+    status: 'On Track',
+    ok: true,
+    spark: [20,28,32,30,38,42,40,48,45,50],
     detail: {
       kpis: [
-        { label: 'Active Pipeline',  value: '$82,000', sub: '6 active deals',     color: '#ea580c' },
-        { label: 'Won This Quarter', value: '$50,000', sub: '↑ 24% vs Q1',        color: '#059669' },
-        { label: 'Avg Deal Size',    value: '$13,667', sub: 'Across 6 deals',     color: '#0f172a' },
-        { label: 'Win Rate',         value: '38%',     sub: 'Industry avg: 27%',  color: '#0f172a' },
+        { l: 'Active Pipeline', v: '$82,000', c: '#ea580c' },
+        { l: 'Won This Quarter',v: '$50,000', c: '#059669' },
+        { l: 'Avg Deal Size',   v: '$13,667', c: '#0f172a' },
+        { l: 'Win Rate',        v: '38%',     c: '#0f172a' },
       ],
-      tableTitle: 'Sales Forecast — Q2 2026',
+      tableTitle: 'Sales Pipeline — Q2 2026',
       rows: [
-        { label: 'TechCorp Ltd',      value: '$12,000', sub: 'Negotiation' },
-        { label: 'GreenPath Inc',     value: '$8,500',  sub: 'Qualified'   },
-        { label: 'Nova Studios',      value: '$22,000', sub: 'Proposal'    },
-        { label: 'BlueSky Retail',    value: '$35,000', sub: 'Negotiation' },
-        { label: 'Vertex Logistics',  value: '$5,000',  sub: 'Lead'        },
-        { label: 'Total Pipeline',    value: '$82,500', highlight: true },
-        { label: 'Expected Close (weighted)', value: '$31,350', highlight: true },
-        { label: 'Q2 Target',         value: '$75,000' },
-        { label: 'Forecast vs Target',value: '42%',     highlight: true },
+        { l: 'TechCorp Ltd',      v: '$12,000' },
+        { l: 'GreenPath Inc',     v: '$8,500'  },
+        { l: 'Nova Studios',      v: '$22,000' },
+        { l: 'BlueSky Retail',    v: '$35,000' },
+        { l: 'Vertex Logistics',  v: '$5,000'  },
+        { l: 'Total Pipeline',    v: '$82,500', h: true },
+        { l: 'Weighted Forecast', v: '$31,350', h: true },
       ],
     },
   },
   {
     id: 'hr',
-    gradient: 'linear-gradient(135deg, #7c3aed 0%, #c026d3 100%)',
-    glow: 'rgba(124,58,237,.35)',
-    icon: '👥',
+    accent: '#7c3aed',
+    bg: '#f5f3ff',
+    label: 'Workforce Plan',
     module: 'HR & People',
-    title: 'Workforce Planning',
-    badge: 'Growing',
-    badgeBg: 'rgba(0,0,0,.25)',
-    kpis: [
-      { label: 'Headcount', value: '12',    trend: 'up' },
-      { label: 'Payroll',   value: '$28k',  trend: 'up' },
-      { label: 'Util. Rate',value: '87%'               },
-    ],
-    spark: [6, 7, 7, 8, 8, 9, 10, 10, 11, 12],
-    sparkColor: 'rgba(233,213,255,.9)',
+    kpi: '12 FTE',
+    kpiLabel: 'Total Headcount',
+    kpi2: '$28k',
+    kpi2Label: 'Monthly Payroll',
+    status: 'Growing',
+    ok: true,
+    spark: [6,7,7,8,8,9,10,10,11,12],
     detail: {
       kpis: [
-        { label: 'Total Headcount',    value: '12',     sub: '+2 this quarter',   color: '#7c3aed' },
-        { label: 'Monthly Payroll',    value: '$28,000', sub: '↑ 18% vs Q1',      color: '#ef4444' },
-        { label: 'Utilization Rate',   value: '87%',    sub: 'Target: 80%+',      color: '#059669' },
-        { label: 'Cost per Employee',  value: '$2,333', sub: 'Monthly avg',       color: '#0f172a' },
+        { l: 'Headcount',      v: '12 FTE',  c: '#7c3aed' },
+        { l: 'Monthly Payroll',v: '$28,000', c: '#ef4444' },
+        { l: 'Utilization',    v: '87%',     c: '#059669' },
+        { l: 'Cost/Employee',  v: '$2,333',  c: '#0f172a' },
       ],
-      tableTitle: 'Workforce by Department — May 2026',
+      tableTitle: 'Workforce by Dept — May 2026',
       rows: [
-        { label: 'Engineering',      value: '4 FTE', sub: '$12,000/mo' },
-        { label: 'Sales & BD',       value: '2 FTE', sub: '$7,000/mo'  },
-        { label: 'Product & Design', value: '2 FTE', sub: '$5,500/mo'  },
-        { label: 'Operations',       value: '2 FTE', sub: '$4,000/mo'  },
-        { label: 'Finance & Admin',  value: '2 FTE', sub: '$3,500/mo'  },
-        { label: 'Total Headcount',  value: '12 FTE', highlight: true  },
-        { label: 'Total Payroll',    value: '$28,000/mo', highlight: true },
-        { label: 'Planned Q3 Hires', value: '3 FTE' },
-        { label: 'Projected Payroll Q3', value: '$34,500/mo', highlight: true },
+        { l: 'Engineering',      v: '4 FTE · $12,000/mo' },
+        { l: 'Sales & BD',       v: '2 FTE · $7,000/mo'  },
+        { l: 'Product & Design', v: '2 FTE · $5,500/mo'  },
+        { l: 'Operations',       v: '2 FTE · $4,000/mo'  },
+        { l: 'Finance & Admin',  v: '2 FTE · $3,500/mo'  },
+        { l: 'Total Headcount',  v: '12 FTE',  h: true },
+        { l: 'Total Payroll',    v: '$28,000/mo', h: true },
       ],
     },
   },
+  {
+    id: 'budget',
+    accent: '#475569',
+    bg: '#f8fafc',
+    label: 'Budget vs Actual',
+    module: 'Planning',
+    kpi: 'Q2 2026',
+    kpiLabel: 'Current Period',
+    kpi2: 'Soon',
+    kpi2Label: 'In Development',
+    status: 'Coming Soon',
+    ok: null,
+    spark: [50,50,50,50,50,50,50,50,50,50],
+    detail: null,
+  },
 ]
 
-/* ── Main Screen ──────────────────────────────────────────── */
-export default function FinanceScreen() {
-  const [activeCard, setActiveCard] = useState(null)
+/* ── Model Tile ───────────────────────────────────────────── */
+function ModelTile({ accent, bg, label, module, kpi, kpiLabel, kpi2, kpi2Label, status, ok, spark, onOpen, detail }) {
+  const canOpen = !!detail
+  return (
+    <button
+      onClick={canOpen ? onOpen : undefined}
+      className="bg-white text-left rounded-2xl relative overflow-hidden w-full transition-all active:scale-[.97]"
+      style={{
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 1px 3px rgba(0,0,0,.04), 0 4px 10px rgba(0,0,0,.05)',
+        cursor: canOpen ? 'pointer' : 'default',
+        opacity: canOpen ? 1 : 0.7,
+      }}
+    >
+      {/* Color top bar */}
+      <div className="h-1 w-full" style={{ background: accent }} />
 
-  const revenue  = 68300
-  const expenses = 14300
-  const net      = revenue - expenses
-  const cash     = 54000
+      <div className="p-4">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <p className="font-bold uppercase" style={{ fontSize: 9, letterSpacing: '0.1em', color: '#94a3b8' }}>{module}</p>
+            <p className="font-semibold mt-0.5" style={{ fontSize: 13, color: '#1e293b', lineHeight: 1.2 }}>{label}</p>
+          </div>
+          {ok !== null && (
+            <span
+              className="flex-shrink-0 font-bold rounded-full"
+              style={{ fontSize: 9, letterSpacing: '0.06em', padding: '2px 8px', background: ok ? '#dcfce7' : '#fef3c7', color: ok ? '#16a34a' : '#d97706' }}
+            >
+              {status}
+            </span>
+          )}
+        </div>
+
+        {/* Primary KPI */}
+        <p className="font-display font-bold" style={{ fontSize: 24, color: accent, letterSpacing: '-0.03em', lineHeight: 1 }}>{kpi}</p>
+        <p style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>{kpiLabel}</p>
+
+        {/* Divider */}
+        <div className="my-3" style={{ height: 1, background: '#f1f5f9' }} />
+
+        {/* Secondary KPI */}
+        <p className="font-bold" style={{ fontSize: 16, color: '#334155', letterSpacing: '-0.02em' }}>{kpi2}</p>
+        <p style={{ fontSize: 10, color: '#94a3b8' }}>{kpi2Label}</p>
+
+        {/* Sparkline */}
+        {canOpen && (
+          <div className="mt-3 flex items-center justify-between">
+            <Spark data={spark} color={accent} />
+            <span className="font-semibold" style={{ fontSize: 10, color: accent }}>Open →</span>
+          </div>
+        )}
+      </div>
+    </button>
+  )
+}
+
+/* ── Drawer ───────────────────────────────────────────────── */
+function Drawer({ card, onClose }) {
+  if (!card?.detail) return null
+  const { detail, accent, label, module } = card
+  return (
+    <div className="absolute inset-0 z-50 flex flex-col" onClick={onClose}
+      style={{ background: 'rgba(15,23,42,.55)', backdropFilter: 'blur(4px)' }}>
+      <div className="flex-1" style={{ minHeight: 60 }} />
+      <div className="bg-white rounded-t-[26px] overflow-hidden animate-slide-up" style={{ maxHeight: '84vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+        {/* Handle */}
+        <div className="flex justify-center pt-3 pb-0 flex-shrink-0">
+          <div className="w-9 h-1 rounded-full" style={{ background: '#e2e8f0' }} />
+        </div>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3 flex-shrink-0" style={{ borderBottom: '1px solid #f1f5f9' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-1.5 rounded-full" style={{ background: accent }} />
+            <div>
+              <p className="font-bold uppercase" style={{ fontSize: 9, letterSpacing: '0.1em', color: '#94a3b8' }}>{module}</p>
+              <p className="font-bold" style={{ fontSize: 14, color: '#0f172a' }}>{label}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center font-bold"
+            style={{ background: '#f1f5f9', color: '#64748b', fontSize: 13 }}>✕</button>
+        </div>
+        {/* Body */}
+        <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+          {/* KPI grid */}
+          <div className="grid grid-cols-2 gap-2.5">
+            {detail.kpis.map(({ l, v, c }) => (
+              <div key={l} className="rounded-xl p-3" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <p style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{l}</p>
+                <p className="font-display font-bold mt-1" style={{ fontSize: 20, color: c, letterSpacing: '-0.03em' }}>{v}</p>
+              </div>
+            ))}
+          </div>
+          {/* Table */}
+          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #e2e8f0' }}>
+            <div className="px-4 py-2" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+              <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#64748b' }}>{detail.tableTitle}</p>
+            </div>
+            {detail.rows.map(({ l, v, h }, i) => (
+              <div key={i} className="flex items-center justify-between px-4 py-2.5"
+                style={{ borderBottom: i < detail.rows.length - 1 ? '1px solid #f8fafc' : 'none', background: h ? `${accent}06` : 'white' }}>
+                <p style={{ fontSize: 12, fontWeight: h ? 700 : 500, color: h ? '#0f172a' : '#475569' }}>{l}</p>
+                <p style={{ fontSize: 12, fontWeight: 700, color: h ? accent : '#334155' }}>{v}</p>
+              </div>
+            ))}
+          </div>
+          {/* AI button */}
+          <button className="w-full rounded-xl py-3 font-bold flex items-center justify-center gap-2 text-white"
+            style={{ fontSize: 13, background: 'linear-gradient(135deg, #0f172a, #1e293b)', boxShadow: '0 4px 14px rgba(0,0,0,.15)' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/>
+            </svg>
+            Generate AI Report with Claude
+          </button>
+          <div className="h-4" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ── Main ─────────────────────────────────────────────────── */
+export default function FinanceScreen() {
+  const [active, setActive] = useState(null)
+
+  const kpis = [
+    { l: 'Revenue',  v: '$68.3k', accent: '#059669', bg: '#f0fdf4' },
+    { l: 'Expenses', v: '$14.3k', accent: '#ef4444', bg: '#fef2f2' },
+    { l: 'Net',      v: '$54.0k', accent: '#059669', bg: '#f0fdf4' },
+    { l: 'Cash',     v: '$54.0k', accent: '#0284c7', bg: '#f0f9ff' },
+  ]
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 relative">
-      {/* Dark themed header */}
-      <div style={{ background: '#0a0f1e' }}>
-        <TopHeader title="Finance" subtitle="Financial Models & EPM" />
-      </div>
+    <div className="flex flex-col h-full relative" style={{ background: '#f0f4f8' }}>
+      <TopHeader title="Finance" subtitle="Financial Models & Planning" />
 
-      {/* Summary strip */}
-      <div className="flex gap-2 px-4 py-3" style={{ background: '#0a0f1e' }}>
-        {[
-          { label: 'Revenue',   value: `$${(revenue/1000).toFixed(1)}k`,  color: '#4ade80' },
-          { label: 'Expenses',  value: `$${(expenses/1000).toFixed(1)}k`, color: '#f87171' },
-          { label: 'Net',       value: `$${(net/1000).toFixed(0)}k`,      color: '#34d399' },
-          { label: 'Cash',      value: `$${(cash/1000).toFixed(0)}k`,     color: '#38bdf8' },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="flex-1 rounded-xl py-2 px-2 text-center"
-            style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)' }}>
-            <p className="text-[15px] font-bold" style={{ color, letterSpacing: '-0.02em' }}>{value}</p>
-            <p className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(148,163,184,.5)' }}>{label}</p>
+      {/* KPI summary strip */}
+      <div className="flex gap-2 px-4 py-3" style={{ background: '#f0f4f8' }}>
+        {kpis.map(({ l, v, accent, bg }) => (
+          <div key={l} className="flex-1 rounded-[13px] py-2 px-2 text-center"
+            style={{ background: bg, border: `1px solid ${accent}22` }}>
+            <p className="font-display font-bold" style={{ fontSize: 15, color: accent, letterSpacing: '-0.02em' }}>{v}</p>
+            <p className="font-semibold uppercase" style={{ fontSize: 9, letterSpacing: '0.09em', color: '#94a3b8', marginTop: 1 }}>{l}</p>
           </div>
         ))}
       </div>
 
       {/* Section label */}
-      <div className="px-4 pt-4 pb-2" style={{ background: '#0c1018' }}>
-        <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'rgba(148,163,184,.4)' }}>
-          AI Financial Models
+      <div className="px-4 pb-2">
+        <p className="font-bold uppercase" style={{ fontSize: 11, letterSpacing: '0.09em', color: '#94a3b8' }}>
+          Financial Models
         </p>
       </div>
 
-      {/* Cards scroll */}
-      <div className="flex-1 overflow-y-auto px-4 pb-24 space-y-3" style={{ background: '#0c1018' }}>
-        {MODELS.map(card => (
-          <ModelCard
-            key={card.id}
-            {...card}
-            onOpen={() => setActiveCard(card)}
-          />
-        ))}
-
-        {/* Coming soon */}
-        <p className="text-[11px] font-bold uppercase tracking-widest pt-2" style={{ color: 'rgba(148,163,184,.3)' }}>
-          Coming Soon
-        </p>
-        <ComingSoonCard icon="📊" module="Planning" title="Budget vs Actual" />
-        <ComingSoonCard icon="📦" module="Operations" title="Inventory & COGS" />
-        <ComingSoonCard icon="🏦" module="Treasury" title="Scenario Planning" />
-
-        <div className="pb-4" />
+      {/* 2-col tile grid */}
+      <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-28">
+        <div className="grid grid-cols-2 gap-3">
+          {MODELS.map(m => (
+            <ModelTile key={m.id} {...m} onOpen={() => setActive(m)} />
+          ))}
+        </div>
+        <div className="h-4" />
       </div>
 
       {/* Drawer */}
-      {activeCard && (
-        <Drawer card={activeCard} onClose={() => setActiveCard(null)} />
-      )}
+      {active && <Drawer card={active} onClose={() => setActive(null)} />}
     </div>
   )
 }
