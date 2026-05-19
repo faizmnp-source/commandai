@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 
 const useAppStore = create((set) => ({
-  // Auth
-  isAuthenticated: false,
+  // Auth — DEV MODE: auto-logged in
+  isAuthenticated: true,
   user: {
     name: 'Faizan',
     email: 'faiz.mnp@gmail.com',
@@ -10,8 +10,8 @@ const useAppStore = create((set) => ({
     avatar: 'F',
   },
 
-  // Navigation
-  currentScreen: 'login',
+  // Navigation — start on home
+  currentScreen: 'home',
 
   // Toast
   toast: { visible: false, message: '' },
