@@ -252,6 +252,43 @@
 @keyframes fade-in    { from{opacity:0} to{opacity:1} }
 @keyframes pulse-dot  { 0%,100%{opacity:.5} 50%{opacity:1} }
 
+/* ── Cinematic right panel ──────────────────────────────────── */
+.cine-panel {
+  background: #030712;
+  border-left: 1px solid rgba(255,255,255,.05);
+}
+.cine-label {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(100,116,139,.55);
+}
+.cine-value {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(226,232,240,.85);
+  letter-spacing: 0.02em;
+}
+.cine-row {
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  transition: background .1s ease;
+  padding: 10px 20px;
+}
+.cine-row:hover { background: rgba(255,255,255,.02); }
+.cine-row:last-child { border-bottom: none; }
+.pulse-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16,185,129,.7);
+  animation: pulse-dot 1.8s ease-in-out infinite;
+}
+
+/* Invoice extract spinner */
+@keyframes spin { to { transform: rotate(360deg); } }
+
 /* ── PWA safe area ──────────────────────────────────────────── */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }

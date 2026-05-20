@@ -1,7 +1,8 @@
 import useAppStore from './store/appStore'
-import BottomNav from './components/layout/BottomNav'
-import Sidebar   from './components/layout/Sidebar'
-import Toast     from './components/ui/Toast'
+import BottomNav   from './components/layout/BottomNav'
+import Sidebar     from './components/layout/Sidebar'
+import RightPanel  from './components/layout/RightPanel'
+import Toast       from './components/ui/Toast'
 
 import LoginScreen     from './screens/LoginScreen'
 import DashboardScreen from './screens/DashboardScreen'
@@ -32,7 +33,8 @@ export default function App() {
       <div className="app-shell" style={{ position: 'relative', zIndex: 1 }}>
         {isAuthenticated && <Sidebar />}
 
-        <div className={`flex-1 flex flex-col overflow-hidden ${isAuthenticated ? 'md:ml-64' : ''}`}>
+        {/* Center content — offset left for sidebar, right for cinematic panel */}
+        <div className={`flex-1 flex flex-col overflow-hidden ${isAuthenticated ? 'md:ml-64 md:mr-[272px]' : ''}`}>
           {Object.entries(SCREENS).map(([id, Screen]) => (
             <div key={id} className={`screen ${currentScreen === id ? 'screen-active' : ''}`}>
               <Screen />
@@ -40,6 +42,7 @@ export default function App() {
           ))}
         </div>
 
+        {isAuthenticated && <RightPanel />}
         {isAuthenticated && <BottomNav />}
         <Toast />
       </div>

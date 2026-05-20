@@ -43,21 +43,27 @@ const NAV_SECTIONS = [
 function BrandLogo() {
   return (
     <div className="flex items-center gap-3">
-      {/* Icon mark */}
+      {/* Primary ∞ icon tile */}
       <div className="relative flex-shrink-0 w-9 h-9">
-        <div
-          className="absolute inset-0 rounded-[11px]"
-          style={{ background: 'linear-gradient(135deg, #059669, #34d399)', boxShadow: '0 4px 14px rgba(16,185,129,.35)' }}
-        />
+        <div className="absolute inset-0 rounded-[11px]"
+          style={{ background: 'linear-gradient(135deg, #047857, #059669)', boxShadow: '0 4px 14px rgba(5,150,105,.4), inset 0 1px 0 rgba(255,255,255,.15)' }}/>
+        {/* Glass shine */}
+        <div className="absolute inset-0 rounded-[11px]" style={{ background: 'linear-gradient(160deg, rgba(255,255,255,.18) 0%, transparent 55%)', pointerEvents:'none' }}/>
         <div className="absolute inset-0 flex items-center justify-center">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          {/* ∞ SVG path */}
+          <svg width="20" height="11" viewBox="0 0 40 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 11C20 11 23.5 4 29 4C34.5 4 38 7.5 38 11C38 14.5 34.5 18 29 18C23.5 18 20 11 20 11Z" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+            <path d="M20 11C20 11 16.5 4 11 4C5.5 4 2 7.5 2 11C2 14.5 5.5 18 11 18C16.5 18 20 11 20 11Z" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
           </svg>
         </div>
       </div>
-      {/* Wordmark */}
+      {/* Wordmark + second ∞ mark */}
       <div>
-        <p className="text-white font-display font-bold text-[15px] leading-tight tracking-tight">CommandAI</p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-white font-display font-bold text-[15px] leading-tight tracking-tight">CommandAI</p>
+          {/* Second ∞ — gradient accent badge */}
+          <span style={{ fontSize:11, fontWeight:800, background:'linear-gradient(135deg,#10b981,#0284c7)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', letterSpacing:'-0.02em', lineHeight:1, marginTop:1 }}>∞</span>
+        </div>
         <p style={{ fontSize: 10, letterSpacing: '0.12em', color: 'rgba(148,163,184,.6)' }} className="font-medium uppercase">Enterprise OS</p>
       </div>
     </div>

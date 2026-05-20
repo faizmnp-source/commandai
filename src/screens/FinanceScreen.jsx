@@ -1,345 +1,475 @@
-import { useState } from 'react'
+import { useState, useMemo, useRef } from 'react'
+import useAppStore from '../store/appStore'
 
-/* ── Sparkline ────────────────────────────────────────────── */
-function Spark({ data, color, w=80, h=26 }) {
-  const max=Math.max(...data), min=Math.min(...data), r=max-min||1
-  const pts=data.map((v,i)=>`${((i/(data.length-1))*w).toFixed(1)},${(h-((v-min)/r)*(h-4)-2).toFixed(1)}`).join(' ')
-  const [lx,ly]=pts.split(' ').at(-1).split(',')
-  return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" opacity="0.85"/>
-      <circle cx={lx} cy={ly} r="2.5" fill={color}/>
-    </svg>
-  )
+/* ── Constants ───────────────────────────────────────────────── */
+const INCOME_CATS  = ['SaaS / Subscriptions','Consulting','Professional Services','Product Sales','Investments','Other Income']
+const EXPENSE_CATS = ['Cost of Revenue','Payroll','Rent & Facilities','Software & Tools','Marketing & Ads','Travel','Legal & Professional','Hardware','Other Expense']
+const PERIODS = [['month','This Month'],['q2','Q2 2026'],['q1','Q1 2026'],['ytd','YTD'],['all','All Time']]
+
+/* ── Helpers ─────────────────────────────────────────────────── */
+const fmt     = n => n >= 1000 ? `$${(n/1000).toFixed(1)}k` : `$${n}`
+const fmtFull = n => `$${Math.abs(n).toLocaleString()}`
+const dateLabel = d => { try { return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) } catch { return d } }
+const srcBadge  = s => ({ manual:{bg:'rgba(37,99,235,.1)',color:'#2563eb',label:'Manual'}, csv:{bg:'rgba(5,150,105,.1)',color:'#059669',label:'CSV'}, invoice:{bg:'rgba(124,58,237,.1)',color:'#7c3aed',label:'Invoice'}, connect:{bg:'rgba(234,88,12,.1)',color:'#ea580c',label:'POS'} }[s] || {bg:'rgba(100,116,139,.1)',color:'#64748b',label:s})
+
+function filterByPeriod(txs, period) {
+  const now = new Date(); const yr = now.getFullYear(); const mo = now.getMonth()
+  return txs.filter(t => {
+    const d = new Date(t.date + 'T12:00:00')
+    if (period === 'month') return d.getMonth() === mo && d.getFullYear() === yr
+    if (period === 'q2')    return d.getMonth() >= 3 && d.getMonth() < 6 && d.getFullYear() === yr
+    if (period === 'q1')    return d.getMonth() < 3 && d.getFullYear() === yr
+    if (period === 'ytd')   return d.getFullYear() === yr
+    return true
+  })
 }
 
-/* ── Finance models
-     NOTE: Revenue & Expenses are line items inside P&L detail.
-           Workforce Planning & Sales Forecasting are dedicated tiles.
-   ────────────────────────────────────────────────────────────── */
-const MODELS = [
-  {
-    id:'pl', accent:'#059669', glow:'#059669',
-    grad:'linear-gradient(145deg,#059669,#10b981)',
-    label:'P&L Statement', module:'Income',
-    kpi:'$68.3k', kpiLabel:'Revenue MTD',
-    kpi2:'79%', kpi2Label:'Net Margin',
-    status:'Profitable', ok:true,
-    spark:[40,45,42,55,58,54,62,68,65,72],
-    detail:{
-      kpis:[
-        { l:'Revenue',       v:'$68,300', c:'#059669' },
-        { l:'Gross Profit',  v:'$61,200', c:'#0f172a' },
-        { l:'Expenses',      v:'$14,300', c:'#ef4444' },
-        { l:'Net Income',    v:'$54,000', c:'#059669' },
-      ],
-      tableTitle:'Income Statement — May 2026',
-      rows:[
-        { l:'Revenue',                  v:'$68,300' },
-        { l:'  SaaS Subscriptions',     v:'$42,000' },
-        { l:'  Consulting',             v:'$18,300' },
-        { l:'  Professional Services',  v:'$8,000'  },
-        { l:'Cost of Revenue',          v:'($7,100)' },
-        { l:'Gross Profit',             v:'$61,200', h:true },
-        { l:'Salaries & Benefits',      v:'($8,200)' },
-        { l:'Software & Tools',         v:'($2,100)' },
-        { l:'Marketing',                v:'($2,800)' },
-        { l:'G&A',                      v:'($1,200)' },
-        { l:'Total Operating Expenses', v:'($14,300)', h:true },
-        { l:'Net Income',               v:'$54,000',  h:true },
-      ],
-    },
-  },
-  {
-    id:'bs', accent:'#2563eb', glow:'#2563eb',
-    grad:'linear-gradient(145deg,#1d4ed8,#60a5fa)',
-    label:'Balance Sheet', module:'Assets',
-    kpi:'$142k', kpiLabel:'Total Assets',
-    kpi2:'$98k', kpi2Label:'Total Equity',
-    status:'Strong', ok:true,
-    spark:[80,88,92,98,102,108,115,120,132,142],
-    detail:{
-      kpis:[
-        { l:'Total Assets',      v:'$142,000', c:'#2563eb' },
-        { l:'Current Assets',    v:'$89,000',  c:'#0f172a' },
-        { l:'Total Liabilities', v:'$44,000',  c:'#ef4444' },
-        { l:'Total Equity',      v:'$98,000',  c:'#059669' },
-      ],
-      tableTitle:'Balance Sheet — May 2026',
-      rows:[
-        { l:'Cash & Equivalents',  v:'$54,000' },
-        { l:'Accounts Receivable', v:'$28,000' },
-        { l:'Fixed Assets (net)',  v:'$53,000' },
-        { l:'Other Assets',        v:'$7,000'  },
-        { l:'Total Assets',        v:'$142,000', h:true },
-        { l:'Accounts Payable',    v:'$12,000' },
-        { l:'Deferred Revenue',    v:'$18,000' },
-        { l:'Long-term Debt',      v:'$14,000' },
-        { l:'Total Liabilities',   v:'$44,000',  h:true },
-        { l:'Total Equity',        v:'$98,000',  h:true },
-      ],
-    },
-  },
-  {
-    id:'cf', accent:'#0284c7', glow:'#0284c7',
-    grad:'linear-gradient(145deg,#0369a1,#38bdf8)',
-    label:'Cash Flow', module:'Treasury',
-    kpi:'$54k', kpiLabel:'Operating CF',
-    kpi2:'14 mo', kpi2Label:'Cash Runway',
-    status:'Healthy', ok:true,
-    spark:[30,38,35,42,40,48,46,52,50,54],
-    detail:{
-      kpis:[
-        { l:'Operating CF',   v:'$54,000',  c:'#0284c7' },
-        { l:'Investing CF',   v:'($6,000)', c:'#ef4444' },
-        { l:'Free Cash Flow', v:'$48,000',  c:'#059669' },
-        { l:'Cash Runway',    v:'14 mo',    c:'#0f172a' },
-      ],
-      tableTitle:'Cash Flow — May 2026',
-      rows:[
-        { l:'Net Income',            v:'$54,000' },
-        { l:'Depreciation',          v:'$1,200'  },
-        { l:'Working Capital Chg',   v:'($1,200)' },
-        { l:'Net Operating CF',      v:'$54,000',  h:true },
-        { l:'Capital Expenditures',  v:'($6,000)' },
-        { l:'Net Investing CF',      v:'($6,000)', h:true },
-        { l:'Loan Repayments',       v:'($2,000)' },
-        { l:'Net Financing CF',      v:'($2,000)', h:true },
-        { l:'Net Change in Cash',    v:'$46,000',  h:true },
-      ],
-    },
-  },
-  {
-    id:'workforce', accent:'#7c3aed', glow:'#7c3aed',
-    grad:'linear-gradient(145deg,#6d28d9,#a78bfa)',
-    label:'Workforce Planning', module:'HR & People',
-    kpi:'12 FTE', kpiLabel:'Total Headcount',
-    kpi2:'$28k', kpi2Label:'Monthly Payroll',
-    status:'Growing', ok:true,
-    spark:[6,7,7,8,8,9,10,10,11,12],
-    detail:{
-      kpis:[
-        { l:'Headcount',       v:'12 FTE',  c:'#7c3aed' },
-        { l:'Monthly Payroll', v:'$28,000', c:'#ef4444' },
-        { l:'Utilization',     v:'87%',     c:'#059669' },
-        { l:'Cost/Employee',   v:'$2,333',  c:'#0f172a' },
-      ],
-      tableTitle:'Workforce by Department — May 2026',
-      rows:[
-        { l:'Engineering',       v:'4 FTE · $12,000/mo' },
-        { l:'Sales & BD',        v:'2 FTE · $7,000/mo'  },
-        { l:'Product & Design',  v:'2 FTE · $5,500/mo'  },
-        { l:'Operations',        v:'2 FTE · $4,000/mo'  },
-        { l:'Finance & Admin',   v:'2 FTE · $3,500/mo'  },
-        { l:'Total Headcount',   v:'12 FTE',     h:true  },
-        { l:'Total Payroll',     v:'$28,000/mo', h:true  },
-        { l:'Projected Q3',      v:'14 FTE',     h:true  },
-      ],
-    },
-  },
-  {
-    id:'sales', accent:'#ea580c', glow:'#ea580c',
-    grad:'linear-gradient(145deg,#c2410c,#fb923c)',
-    label:'Sales Forecasting', module:'Revenue',
-    kpi:'$82k', kpiLabel:'Active Pipeline',
-    kpi2:'38%', kpi2Label:'Win Rate',
-    status:'On Track', ok:true,
-    spark:[20,28,32,30,38,42,40,48,45,50],
-    detail:{
-      kpis:[
-        { l:'Active Pipeline',   v:'$82,000', c:'#ea580c' },
-        { l:'Won This Quarter',  v:'$50,000', c:'#059669' },
-        { l:'Avg Deal Size',     v:'$13,667', c:'#0f172a' },
-        { l:'Win Rate',          v:'38%',     c:'#0f172a' },
-      ],
-      tableTitle:'Sales Pipeline — Q2 2026',
-      rows:[
-        { l:'TechCorp Ltd',       v:'$12,000' },
-        { l:'GreenPath Inc',      v:'$8,500'  },
-        { l:'Nova Studios',       v:'$22,000' },
-        { l:'BlueSky Retail',     v:'$35,000' },
-        { l:'Vertex Logistics',   v:'$5,000'  },
-        { l:'Total Pipeline',     v:'$82,500', h:true },
-        { l:'Weighted (×38%)',    v:'$31,350', h:true },
-        { l:'Q3 Target',          v:'$120,000',h:true },
-      ],
-    },
-  },
-  {
-    id:'budget', accent:'#64748b', glow:'#64748b',
-    grad:'linear-gradient(145deg,#334155,#64748b)',
-    label:'Budget vs Actual', module:'Planning',
-    kpi:'Q2 2026', kpiLabel:'Current Period',
-    kpi2:'Soon', kpi2Label:'In Development',
-    status:'Coming Soon', ok:null,
-    spark:[50,50,50,50,50,50,50,50,50,50],
-    detail:null,
-  },
-]
+function parseCSVLine(line) {
+  const res = []; let cur = ''; let inQ = false
+  for (const ch of line) {
+    if (ch === '"') inQ = !inQ
+    else if (ch === ',' && !inQ) { res.push(cur.trim()); cur = '' }
+    else cur += ch
+  }
+  res.push(cur.trim()); return res
+}
 
-/* ── Glass Model Tile ─────────────────────────────────────── */
-function ModelTile({ accent, glow, grad, label, module, kpi, kpiLabel, kpi2, kpi2Label, status, ok, spark, detail, onOpen }) {
-  const canOpen = !!detail
+/* ── FinSection / FinLine ────────────────────────────────────── */
+function FinSection({ title, children }) {
   return (
-    <button
-      onClick={canOpen ? onOpen : undefined}
-      className="text-left rounded-2xl relative overflow-hidden w-full transition-all active:scale-[.97]"
-      style={{
-        cursor: canOpen ? 'pointer' : 'default',
-        opacity: canOpen ? 1 : 0.6,
-        background: 'rgba(255,255,255,.82)',
-        backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-        border: '1px solid rgba(255,255,255,.95)',
-        boxShadow: `0 4px 24px rgba(0,0,0,.07), 0 1px 4px rgba(0,0,0,.04), inset 0 1px 0 #fff`,
-      }}
-    >
-      {/* Colored accent top strip */}
-      <div style={{ height:3, background:`linear-gradient(90deg,${accent},${accent}66)` }}/>
-
-      {/* Subtle tint overlay */}
-      <div style={{ position:'absolute', top:0, left:0, right:0, height:64, background:`linear-gradient(180deg,${glow}0d 0%,transparent 100%)`, pointerEvents:'none' }}/>
-
-      <div className="p-4" style={{ position:'relative', zIndex:1 }}>
-        {/* Header row */}
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <p className="eyebrow">{module}</p>
-            <p style={{ fontSize:13, fontWeight:700, color:'#1e293b', marginTop:3, lineHeight:1.2 }}>{label}</p>
-          </div>
-          {ok !== null && (
-            <span style={{
-              fontSize:9, fontWeight:700, letterSpacing:'0.06em', padding:'3px 8px', borderRadius:99,
-              background: ok ? 'rgba(5,150,105,.10)' : 'rgba(251,191,36,.12)',
-              color: ok ? '#059669' : '#d97706',
-              border: `1px solid ${ok ? 'rgba(5,150,105,.20)' : 'rgba(251,191,36,.25)'}`,
-            }}>{status}</span>
-          )}
-        </div>
-
-        {/* Primary KPI */}
-        <p style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:26, fontWeight:800, color:accent, letterSpacing:'-0.04em', lineHeight:1 }}>{kpi}</p>
-        <p style={{ fontSize:10, color:'#94a3b8', marginTop:3 }}>{kpiLabel}</p>
-
-        {/* Divider */}
-        <div style={{ height:1, background:'rgba(0,0,0,.05)', margin:'12px 0' }}/>
-
-        {/* Secondary KPI */}
-        <p style={{ fontSize:17, fontWeight:700, color:'#334155', letterSpacing:'-0.02em' }}>{kpi2}</p>
-        <p style={{ fontSize:10, color:'#94a3b8' }}>{kpi2Label}</p>
-
-        {/* Sparkline + open */}
-        {canOpen && (
-          <div className="flex items-center justify-between mt-3">
-            <Spark data={spark} color={accent}/>
-            <span style={{ fontSize:10, fontWeight:700, color:accent }}>Open →</span>
-          </div>
-        )}
+    <div className="mb-3">
+      <div className="flex items-center gap-2 mb-1.5 px-1">
+        <span style={{ fontFamily:'ui-monospace,monospace', fontSize:9, letterSpacing:'0.18em', color:'#94a3b8', textTransform:'uppercase' }}>{title}</span>
+        <div style={{ flex:1, height:1, background:'rgba(0,0,0,.06)' }}/>
       </div>
-    </button>
+      <div className="rounded-xl overflow-hidden" style={{ background:'rgba(255,255,255,.85)', border:'1px solid rgba(255,255,255,.95)', backdropFilter:'blur(16px)', boxShadow:'0 2px 10px rgba(0,0,0,.05), inset 0 1px 0 #fff' }}>
+        {children}
+      </div>
+    </div>
   )
 }
 
-/* ── Detail Drawer ────────────────────────────────────────── */
-function Drawer({ card, onClose }) {
-  if (!card?.detail) return null
-  const { detail, accent, glow, label, module } = card
+function FinLine({ label, amount, indent, bold, total, neg, positive }) {
+  const txtColor = total ? (positive ? '#059669' : amount < 0 ? '#dc2626' : '#1e293b') : '#475569'
+  const amtColor = positive ? '#059669' : (neg || (total && amount < 0)) ? '#dc2626' : '#1e293b'
   return (
-    <div className="absolute inset-0 z-50 flex flex-col" onClick={onClose}
-      style={{ background:'rgba(15,23,42,.45)', backdropFilter:'blur(6px)' }}>
-      <div className="flex-1" style={{ minHeight:60 }}/>
+    <div className="flex items-center justify-between" style={{ padding:'9px 16px', borderBottom:'1px solid rgba(0,0,0,.04)', background: total ? 'rgba(99,120,180,.03)' : 'transparent' }}>
+      <span style={{ fontSize:12, color:txtColor, fontWeight: bold ? 700 : 500, paddingLeft: indent ? 10 : 0 }}>{label}</span>
+      {amount !== undefined && (
+        <span style={{ fontFamily:'ui-monospace,monospace', fontSize:12, fontWeight: bold ? 700 : 500, color: amtColor }}>
+          {neg ? '-' : ''}{fmtFull(Math.abs(amount))}
+        </span>
+      )}
+    </div>
+  )
+}
+
+/* ── Manual Entry Form ───────────────────────────────────────── */
+function ManualForm({ onSave, onCancel }) {
+  const today = new Date().toISOString().slice(0,10)
+  const [tp, setTp]   = useState('income')
+  const [date, setDate] = useState(today)
+  const [cat, setCat] = useState(INCOME_CATS[0])
+  const [desc, setDesc] = useState('')
+  const [amt, setAmt]   = useState('')
+  const [notes, setNotes] = useState('')
+
+  const cats = tp === 'income' ? INCOME_CATS : EXPENSE_CATS
+
+  function switchType(v) { setTp(v); setCat(v === 'income' ? INCOME_CATS[0] : EXPENSE_CATS[0]) }
+
+  return (
+    <div className="space-y-3 pt-2">
+      <div className="flex rounded-xl overflow-hidden" style={{ border:'1px solid #e2e8f0' }}>
+        {[['income','+ Income'],['expense','- Expense']].map(([v,l]) => (
+          <button key={v} onClick={() => switchType(v)} className="flex-1 py-2.5 font-bold transition-all"
+            style={{ fontSize:13, background: tp===v ? (v==='income'?'#059669':'#dc2626') : 'white', color: tp===v ? '#fff' : '#94a3b8' }}>{l}</button>
+        ))}
+      </div>
+      <input type="date" className="inp" value={date} onChange={e => setDate(e.target.value)} />
+      <select className="inp" value={cat} onChange={e => setCat(e.target.value)}>
+        {cats.map(c => <option key={c}>{c}</option>)}
+      </select>
+      <input className="inp" placeholder="Description / Merchant *" value={desc} onChange={e => setDesc(e.target.value)} />
+      <div className="relative">
+        <span style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', fontSize:14, color:'#94a3b8' }}>$</span>
+        <input className="inp" style={{ paddingLeft:28 }} placeholder="0.00" type="number" step="0.01" min="0" value={amt} onChange={e => setAmt(e.target.value)} />
+      </div>
+      <input className="inp" placeholder="Notes (optional)" value={notes} onChange={e => setNotes(e.target.value)} />
+      <div className="flex gap-3 pt-1">
+        <button onClick={onCancel} className="btn-ghost flex-1">Cancel</button>
+        <button onClick={() => { if (!desc.trim() || !amt) return; onSave({ date, type:tp, cat, desc, amount:parseFloat(amt), src:'manual', notes }) }} className="btn-em flex-1">Save Entry</button>
+      </div>
+    </div>
+  )
+}
+
+/* ── CSV Import ──────────────────────────────────────────────── */
+function CSVImport({ onImport, onCancel }) {
+  const [preview, setPreview] = useState(null)
+  const [colMap, setColMap]   = useState({ date:'', desc:'', amount:'', type:'' })
+  const [dragging, setDragging] = useState(false)
+  const fileRef = useRef()
+
+  function handleFile(file) {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = e => {
+      const lines = e.target.result.trim().split('\n').filter(l => l.trim())
+      if (lines.length < 2) return
+      const headers = parseCSVLine(lines[0]).map(h => h.replace(/['"]/g,''))
+      const rows = lines.slice(1, 5).map(l => parseCSVLine(l).map(v => v.replace(/['"]/g,'')))
+      setPreview({ headers, rows, allLines: lines })
+      const autoMap = { date:'', desc:'', amount:'', type:'' }
+      headers.forEach(h => {
+        const hl = h.toLowerCase()
+        if (/date|time/.test(hl)) autoMap.date = h
+        if (/desc|name|memo|narr/.test(hl)) autoMap.desc = h
+        if (/amount|amt|value|debit|credit/.test(hl)) autoMap.amount = h
+        if (/type|kind|categ/.test(hl)) autoMap.type = h
+      })
+      setColMap(autoMap)
+    }
+    reader.readAsText(file)
+  }
+
+  function doImport() {
+    if (!preview || !colMap.date || !colMap.desc || !colMap.amount) return
+    const txs = preview.allLines.slice(1).map((l, i) => {
+      const vals = parseCSVLine(l).map(v => v.replace(/['"]/g,''))
+      const get = col => vals[preview.headers.indexOf(col)] || ''
+      const rawAmt = parseFloat(get(colMap.amount).replace(/[$,]/g,''))
+      return { id: Date.now()+i, date: get(colMap.date), type: rawAmt < 0 ? 'expense' : 'income', cat: 'Other Income', desc: get(colMap.desc), amount: Math.abs(rawAmt), src: 'csv' }
+    }).filter(t => !isNaN(t.amount) && t.amount > 0)
+    onImport(txs)
+  }
+
+  if (!preview) return (
+    <div className="space-y-3 pt-2">
       <div
-        className="rounded-t-[26px] overflow-hidden no-scrollbar"
-        style={{
-          maxHeight:'86vh', display:'flex', flexDirection:'column',
-          background:'rgba(255,255,255,.96)',
-          backdropFilter:'blur(28px)',
-          borderTop:'1px solid rgba(255,255,255,.9)',
-          boxShadow:'0 -8px 40px rgba(0,0,0,.15), 0 -1px 0 rgba(0,0,0,.06)',
-          animation:'slide-up .26s cubic-bezier(.16,1,.3,1)',
-        }}
-        onClick={e=>e.stopPropagation()}
+        className="rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all"
+        style={{ height:120, border:`2px dashed ${dragging ? '#2563eb' : '#e2e8f0'}`, background: dragging ? 'rgba(37,99,235,.04)' : 'rgba(248,250,252,.8)' }}
+        onDragOver={e => { e.preventDefault(); setDragging(true) }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={e => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]) }}
+        onClick={() => fileRef.current?.click()}
       >
-        {/* Handle */}
-        <div className="flex justify-center pt-3 flex-shrink-0">
-          <div style={{ width:36, height:4, borderRadius:99, background:'#e2e8f0' }}/>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        <span style={{ fontSize:13, color:'#64748b', fontWeight:600 }}>Drop CSV or click to browse</span>
+        <span style={{ fontSize:11, color:'#94a3b8' }}>Bank statements · QuickBooks · Xero exports</span>
+      </div>
+      <input ref={fileRef} type="file" accept=".csv,.txt" style={{ display:'none' }} onChange={e => handleFile(e.target.files[0])} />
+      <button onClick={onCancel} className="btn-ghost w-full">Cancel</button>
+    </div>
+  )
+
+  return (
+    <div className="space-y-3 pt-2">
+      <p style={{ fontSize:12, color:'#059669', fontWeight:600 }}>✓ {preview.allLines.length - 1} rows detected — map your columns:</p>
+      <div className="grid grid-cols-2 gap-2">
+        {[['date','Date Column'],['desc','Description'],['amount','Amount'],['type','Type (optional)']].map(([k,lbl]) => (
+          <div key={k}>
+            <p style={{ fontSize:10, color:'#94a3b8', fontWeight:700, marginBottom:4, textTransform:'uppercase', letterSpacing:'0.08em' }}>{lbl}</p>
+            <select className="inp" style={{ fontSize:12, padding:'7px 10px' }} value={colMap[k]} onChange={e => setColMap(p => ({...p,[k]:e.target.value}))}>
+              <option value="">-- skip --</option>
+              {preview.headers.map(h => <option key={h}>{h}</option>)}
+            </select>
+          </div>
+        ))}
+      </div>
+      <div className="rounded-xl overflow-hidden" style={{ border:'1px solid #e2e8f0' }}>
+        <div className="overflow-x-auto no-scrollbar">
+          <table style={{ width:'100%', fontSize:10, borderCollapse:'collapse' }}>
+            <thead><tr style={{ background:'#f8fafc' }}>{preview.headers.map(h => <th key={h} style={{ padding:'6px 10px', textAlign:'left', color:'#94a3b8', fontWeight:700, borderBottom:'1px solid #e2e8f0', whiteSpace:'nowrap' }}>{h}</th>)}</tr></thead>
+            <tbody>{preview.rows.slice(0,3).map((row,i) => <tr key={i} style={{ borderBottom:'1px solid #f1f5f9' }}>{row.map((cell,j) => <td key={j} style={{ padding:'6px 10px', color:'#475569', whiteSpace:'nowrap', maxWidth:100, overflow:'hidden', textOverflow:'ellipsis' }}>{cell}</td>)}</tr>)}</tbody>
+          </table>
         </div>
+      </div>
+      <div className="flex gap-3">
+        <button onClick={() => setPreview(null)} className="btn-ghost flex-1">Back</button>
+        <button onClick={doImport} className="btn-em flex-1" disabled={!colMap.date || !colMap.desc || !colMap.amount}>Import {preview.allLines.length - 1} Rows</button>
+      </div>
+    </div>
+  )
+}
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 flex-shrink-0" style={{ borderBottom:'1px solid #f1f5f9' }}>
-          <div className="flex items-center gap-3">
-            <div style={{ width:24, height:3, borderRadius:2, background:`linear-gradient(90deg,${accent},${accent}55)` }}/>
-            <div>
-              <p className="eyebrow">{module}</p>
-              <p style={{ fontSize:14, fontWeight:800, color:'#0f172a', letterSpacing:'-0.01em' }}>{label}</p>
-            </div>
-          </div>
-          <button onClick={onClose} style={{ width:28, height:28, borderRadius:8, background:'#f1f5f9', border:'1px solid #e2e8f0', color:'#64748b', fontSize:13, fontWeight:700, cursor:'pointer' }}>✕</button>
+/* ── Invoice Upload ──────────────────────────────────────────── */
+function InvoiceUpload({ onSave, onCancel }) {
+  const [state, setState]   = useState('idle')
+  const [fields, setFields] = useState(null)
+  const fileRef = useRef()
+
+  function handleFile(file) {
+    if (!file) return
+    setState('extracting')
+    setTimeout(() => {
+      setFields({ date: new Date().toISOString().slice(0,10), desc: file.name.replace(/\.[^.]+$/,'').replace(/[-_]/g,' '), amount:'', cat:'Professional Services', type:'income', invoiceNo:`INV-${Math.floor(Math.random()*9000)+1000}` })
+      setState('done')
+    }, 2200)
+  }
+
+  if (state === 'idle') return (
+    <div className="space-y-3 pt-2">
+      <div className="rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer" style={{ height:120, border:'2px dashed #e2e8f0', background:'rgba(248,250,252,.8)' }} onClick={() => fileRef.current?.click()}>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
+        <span style={{ fontSize:13, color:'#64748b', fontWeight:600 }}>Upload invoice or receipt</span>
+        <span style={{ fontSize:11, color:'#94a3b8' }}>PDF, JPG, PNG — AI extracts the data</span>
+      </div>
+      <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:'none' }} onChange={e => handleFile(e.target.files[0])} />
+      <button onClick={onCancel} className="btn-ghost w-full">Cancel</button>
+    </div>
+  )
+
+  if (state === 'extracting') return (
+    <div className="flex flex-col items-center gap-4 py-10">
+      <div style={{ width:44, height:44, borderRadius:'50%', border:'3px solid rgba(124,58,237,.2)', borderTopColor:'#7c3aed', animation:'spin .8s linear infinite' }}/>
+      <div className="text-center">
+        <p style={{ fontSize:13, fontWeight:700, color:'#1e293b' }}>Extracting data…</p>
+        <p style={{ fontSize:11, color:'#94a3b8', marginTop:4 }}>AI is reading your invoice fields</p>
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="space-y-3 pt-2">
+      <div className="rounded-xl px-4 py-3 flex items-center gap-2" style={{ background:'rgba(5,150,105,.06)', border:'1px solid rgba(5,150,105,.15)' }}>
+        <span style={{ fontSize:16 }}>✓</span>
+        <span style={{ fontSize:12, color:'#059669', fontWeight:600 }}>Extracted — confirm the details below</span>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div><p style={{ fontSize:10, color:'#94a3b8', marginBottom:4 }}>INVOICE NO.</p><input className="inp" style={{ fontSize:12 }} value={fields.invoiceNo} onChange={e => setFields(p => ({...p,invoiceNo:e.target.value}))} /></div>
+        <div><p style={{ fontSize:10, color:'#94a3b8', marginBottom:4 }}>DATE</p><input type="date" className="inp" style={{ fontSize:12 }} value={fields.date} onChange={e => setFields(p => ({...p,date:e.target.value}))} /></div>
+      </div>
+      <div><p style={{ fontSize:10, color:'#94a3b8', marginBottom:4 }}>DESCRIPTION</p><input className="inp" style={{ fontSize:12 }} value={fields.desc} onChange={e => setFields(p => ({...p,desc:e.target.value}))} /></div>
+      <div className="flex rounded-xl overflow-hidden" style={{ border:'1px solid #e2e8f0' }}>
+        {[['income','Income'],['expense','Expense']].map(([v,l]) => (
+          <button key={v} onClick={() => setFields(p => ({...p,type:v}))} className="flex-1 py-2 font-bold transition-all"
+            style={{ fontSize:12, background: fields.type===v ? (v==='income'?'#059669':'#dc2626') : 'white', color: fields.type===v ? '#fff' : '#94a3b8' }}>{l}</button>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div><p style={{ fontSize:10, color:'#94a3b8', marginBottom:4 }}>CATEGORY</p>
+          <select className="inp" style={{ fontSize:12 }} value={fields.cat} onChange={e => setFields(p => ({...p,cat:e.target.value}))}>
+            {[...INCOME_CATS,...EXPENSE_CATS].map(c => <option key={c}>{c}</option>)}
+          </select>
         </div>
+        <div><p style={{ fontSize:10, color:'#94a3b8', marginBottom:4 }}>AMOUNT</p>
+          <div className="relative"><span style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', fontSize:13, color:'#94a3b8' }}>$</span>
+          <input className="inp" style={{ fontSize:12, paddingLeft:24 }} placeholder="0.00" type="number" value={fields.amount} onChange={e => setFields(p => ({...p,amount:e.target.value}))} /></div>
+        </div>
+      </div>
+      <div className="flex gap-3">
+        <button onClick={onCancel} className="btn-ghost flex-1">Cancel</button>
+        <button onClick={() => { if (!fields.amount) return; onSave({ date:fields.date, type:fields.type, cat:fields.cat, desc:fields.desc, amount:parseFloat(fields.amount), src:'invoice' }) }} className="btn-em flex-1">Confirm & Save</button>
+      </div>
+    </div>
+  )
+}
 
-        {/* Scrollable body */}
-        <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4 no-scrollbar">
-          {/* KPI 2×2 grid */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-            {detail.kpis.map(({ l, v, c }) => (
-              <div key={l} className="rounded-xl p-3" style={{ background:'#f8fafc', border:'1px solid #e2e8f0' }}>
-                <p className="eyebrow mb-1">{l}</p>
-                <p style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:20, fontWeight:800, color:c, letterSpacing:'-0.03em' }}>{v}</p>
-              </div>
-            ))}
+/* ── Connect Sources ─────────────────────────────────────────── */
+function ConnectSources({ onCancel }) {
+  const SRC = [
+    { name:'Square',     logo:'SQ', color:'#059669', bg:'rgba(5,150,105,.1)',  status:'connect', desc:'POS & payments'   },
+    { name:'Stripe',     logo:'ST', color:'#6d28d9', bg:'rgba(109,40,217,.1)',status:'connect', desc:'Online payments'  },
+    { name:'Plaid',      logo:'PL', color:'#0d9488', bg:'rgba(13,148,136,.1)', status:'connect', desc:'Bank connection'  },
+    { name:'QuickBooks', logo:'QB', color:'#2563eb', bg:'rgba(37,99,235,.1)',  status:'soon',    desc:'Accounting'       },
+    { name:'Xero',       logo:'XE', color:'#0284c7', bg:'rgba(2,132,199,.1)',  status:'soon',    desc:'Accounting'       },
+    { name:'Shopify',    logo:'SH', color:'#d97706', bg:'rgba(217,119,6,.1)',  status:'soon',    desc:'eCommerce & POS'  },
+  ]
+  return (
+    <div className="space-y-2 pt-2">
+      <p style={{ fontSize:12, color:'#64748b', marginBottom:8 }}>Connect your financial data sources for automatic sync and real-time reporting.</p>
+      {SRC.map(s => (
+        <div key={s.name} className="rounded-xl flex items-center gap-3 px-4 py-3" style={{ background:'rgba(255,255,255,.85)', border:'1px solid rgba(226,232,240,.9)', boxShadow:'0 1px 4px rgba(0,0,0,.04)' }}>
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-xs flex-shrink-0" style={{ background:s.bg, color:s.color }}>{s.logo}</div>
+          <div className="flex-1"><p style={{ fontSize:13, fontWeight:700, color:'#1e293b' }}>{s.name}</p><p style={{ fontSize:11, color:'#94a3b8' }}>{s.desc}</p></div>
+          {s.status === 'connect'
+            ? <button className="font-bold rounded-lg px-3 py-1.5" style={{ fontSize:11, background:s.bg, color:s.color, border:`1px solid ${s.color}20` }} onClick={() => alert(`OAuth flow for ${s.name} — coming soon!`)}>Connect</button>
+            : <span className="font-semibold rounded-lg px-3 py-1.5" style={{ fontSize:11, background:'rgba(100,116,139,.08)', color:'#94a3b8' }}>Soon</span>
+          }
+        </div>
+      ))}
+      <div className="pt-2"><button onClick={onCancel} className="btn-ghost w-full">Close</button></div>
+    </div>
+  )
+}
+
+/* ── P&L View ────────────────────────────────────────────────── */
+function PLView({ filtered }) {
+  const inc = filtered.filter(t => t.type === 'income')
+  const exp = filtered.filter(t => t.type === 'expense')
+
+  const revenue = INCOME_CATS.map(cat => ({ cat, amount: inc.filter(t => t.cat === cat).reduce((s,t) => s+t.amount, 0) })).filter(r => r.amount > 0)
+  const totalRevenue  = revenue.reduce((s,r) => s+r.amount, 0)
+  const cogs          = exp.filter(t => t.cat === 'Cost of Revenue').reduce((s,t) => s+t.amount, 0)
+  const gp            = totalRevenue - cogs
+  const gpPct         = totalRevenue > 0 ? (gp/totalRevenue*100).toFixed(1) : 0
+  const opex          = EXPENSE_CATS.filter(c => c !== 'Cost of Revenue').map(cat => ({ cat, amount: exp.filter(t => t.cat === cat).reduce((s,t) => s+t.amount, 0) })).filter(r => r.amount > 0)
+  const totalOpex     = opex.reduce((s,r) => s+r.amount, 0)
+  const net           = gp - totalOpex
+  const netPct        = totalRevenue > 0 ? (net/totalRevenue*100).toFixed(1) : 0
+
+  if (totalRevenue === 0 && totalOpex === 0) return (
+    <div className="flex flex-col items-center gap-3 py-12">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      <p style={{ fontSize:13, color:'#94a3b8', fontWeight:600 }}>No transactions in this period</p>
+      <p style={{ fontSize:11, color:'#cbd5e1' }}>Add entries or import a CSV to see your P&L</p>
+    </div>
+  )
+
+  return (
+    <div className="px-4 pb-4">
+      <FinSection title="Revenue">
+        {revenue.map(r => <FinLine key={r.cat} label={r.cat} amount={r.amount} indent />)}
+        <FinLine label="Total Revenue" amount={totalRevenue} bold total positive />
+      </FinSection>
+
+      {cogs > 0 && (
+        <FinSection title="Cost of Revenue">
+          <FinLine label="Cost of Revenue" amount={cogs} indent neg />
+          <FinLine label={`Gross Profit · ${gpPct}% margin`} amount={gp} bold total positive={gp >= 0} />
+        </FinSection>
+      )}
+
+      {opex.length > 0 && (
+        <FinSection title="Operating Expenses">
+          {opex.map(r => <FinLine key={r.cat} label={r.cat} amount={r.amount} indent neg />)}
+          <FinLine label="Total Operating Expenses" amount={totalOpex} bold total />
+        </FinSection>
+      )}
+
+      {/* Net Income card */}
+      <div className="rounded-xl px-4 py-4 mt-1" style={{ background: net >= 0 ? 'rgba(5,150,105,.06)' : 'rgba(220,38,38,.06)', border:`1px solid ${net >= 0 ? 'rgba(5,150,105,.18)' : 'rgba(220,38,38,.18)'}` }}>
+        <div className="flex items-start justify-between">
+          <div>
+            <p style={{ fontFamily:'ui-monospace,monospace', fontSize:9, letterSpacing:'0.18em', color:'#94a3b8', textTransform:'uppercase', marginBottom:4 }}>Net Income</p>
+            <p style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:22, fontWeight:800, letterSpacing:'-0.03em', color: net >= 0 ? '#059669' : '#dc2626', lineHeight:1 }}>
+              {net >= 0 ? '+' : '-'}{fmtFull(net)}
+            </p>
           </div>
-
-          {/* Detail table */}
-          <div className="rounded-xl overflow-hidden" style={{ border:'1px solid #e2e8f0' }}>
-            <div className="px-4 py-2.5" style={{ background:'#f8fafc', borderBottom:'1px solid #e2e8f0' }}>
-              <p className="eyebrow">{detail.tableTitle}</p>
-            </div>
-            {detail.rows.map(({ l, v, h }, i) => (
-              <div key={i} className="flex items-center justify-between px-4 py-2.5"
-                style={{ borderBottom: i<detail.rows.length-1 ? '1px solid #f8fafc' : 'none', background: h ? `${glow}08` : 'white' }}>
-                <p style={{ fontSize:12, fontWeight:h?700:500, color:h?'#0f172a':'#64748b' }}>{l}</p>
-                <p style={{ fontSize:12, fontWeight:700, color:h?accent:'#334155' }}>{v}</p>
-              </div>
-            ))}
+          <div className="text-right">
+            <p style={{ fontFamily:'ui-monospace,monospace', fontSize:9, letterSpacing:'0.18em', color:'#94a3b8', textTransform:'uppercase', marginBottom:4 }}>Net Margin</p>
+            <p style={{ fontSize:18, fontWeight:800, color: net >= 0 ? '#059669' : '#dc2626' }}>{netPct}%</p>
           </div>
-
-          {/* AI report button */}
-          <button className="w-full rounded-xl py-3 font-bold flex items-center justify-center gap-2 text-white"
-            style={{ fontSize:13, background:'linear-gradient(135deg,#0f172a,#1e293b)', boxShadow:'0 4px 16px rgba(0,0,0,.18)' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/>
-            </svg>
-            Generate AI Report with Claude
-          </button>
-          <div style={{ height:12 }}/>
+        </div>
+        <div className="flex gap-5 mt-3" style={{ borderTop:'1px solid rgba(0,0,0,.06)', paddingTop:10 }}>
+          <div><p style={{ fontSize:10, color:'#94a3b8', fontWeight:600 }}>Revenue</p><p style={{ fontSize:13, fontWeight:700, color:'#059669' }}>{fmt(totalRevenue)}</p></div>
+          <div><p style={{ fontSize:10, color:'#94a3b8', fontWeight:600 }}>Expenses</p><p style={{ fontSize:13, fontWeight:700, color:'#dc2626' }}>{fmt(cogs + totalOpex)}</p></div>
+          <div><p style={{ fontSize:10, color:'#94a3b8', fontWeight:600 }}>Gross Margin</p><p style={{ fontSize:13, fontWeight:700, color:'#1e293b' }}>{gpPct > 0 ? gpPct : '—'}%</p></div>
         </div>
       </div>
     </div>
   )
 }
 
-/* ── Main Screen ──────────────────────────────────────────── */
+/* ── Transactions View ───────────────────────────────────────── */
+function TxView({ filtered }) {
+  const [search, setSearch]   = useState('')
+  const [tpf, setTpf]         = useState('all')
+
+  const shown = [...filtered]
+    .filter(t => tpf === 'all' || t.type === tpf)
+    .filter(t => !search || t.desc.toLowerCase().includes(search.toLowerCase()) || t.cat.toLowerCase().includes(search.toLowerCase()))
+    .sort((a,b) => new Date(b.date) - new Date(a.date))
+
+  return (
+    <div className="px-4">
+      <div className="relative mb-3">
+        <svg className="absolute left-3 top-1/2 -translate-y-1/2" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search transactions…" className="inp w-full pl-8" style={{ fontSize:13 }}/>
+      </div>
+      <div className="flex items-center gap-2 mb-3">
+        {[['all','All'],['income','Income'],['expense','Expenses']].map(([v,l]) => (
+          <button key={v} onClick={() => setTpf(v)} className="font-semibold rounded-lg px-3 py-1.5 transition-all"
+            style={{ fontSize:11, background: tpf===v ? '#0f172a' : 'rgba(255,255,255,.8)', color: tpf===v ? '#fff' : '#64748b', border: tpf===v ? '1px solid #0f172a' : '1px solid rgba(226,232,240,.9)' }}>{l}</button>
+        ))}
+        <span style={{ fontSize:11, color:'#94a3b8', marginLeft:'auto' }}>{shown.length} entries</span>
+      </div>
+      <div className="space-y-2">
+        {shown.length === 0 && <div className="text-center py-8"><p style={{ fontSize:13, color:'#94a3b8' }}>No transactions found</p></div>}
+        {shown.map(t => {
+          const badge = srcBadge(t.src)
+          return (
+            <div key={t.id} className="rounded-xl flex items-center gap-3 px-4 py-3" style={{ background:'rgba(255,255,255,.85)', border:'1px solid rgba(255,255,255,.95)', backdropFilter:'blur(12px)', boxShadow:'0 1px 6px rgba(0,0,0,.05), inset 0 1px 0 #fff' }}>
+              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: t.type==='income' ? '#059669' : '#dc2626' }}/>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold truncate" style={{ fontSize:13, color:'#1e293b' }}>{t.desc}</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span style={{ fontSize:10, color:'#94a3b8' }}>{dateLabel(t.date)}</span>
+                  <span style={{ fontSize:10, color:'#cbd5e1' }}>·</span>
+                  <span style={{ fontSize:10, color:'#94a3b8' }}>{t.cat}</span>
+                </div>
+              </div>
+              <div className="text-right flex-shrink-0">
+                <p style={{ fontSize:13, fontWeight:700, fontFamily:'ui-monospace,monospace', color: t.type==='income' ? '#059669' : '#dc2626' }}>
+                  {t.type==='income' ? '+' : '-'}{fmtFull(t.amount)}
+                </p>
+                <span className="rounded-md font-semibold" style={{ fontSize:9, background:badge.bg, color:badge.color, padding:'1px 5px' }}>{badge.label}</span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+/* ── Main Screen ─────────────────────────────────────────────── */
 export default function FinanceScreen() {
-  const [active, setActive] = useState(null)
-  const kpis = [
-    { l:'Revenue',  v:'$68.3k', c:'#059669' },
-    { l:'Expenses', v:'$14.3k', c:'#ef4444' },
-    { l:'Net',      v:'$54.0k', c:'#059669' },
-    { l:'Cash',     v:'$54.0k', c:'#0284c7' },
-  ]
+  const { transactions, addTransaction, addTransactions, showToast } = useAppStore()
+  const [tab, setTab]             = useState('pl')
+  const [period, setPeriod]       = useState('month')
+  const [showEntry, setShowEntry] = useState(false)
+  const [entryTab, setEntryTab]   = useState('manual')
+  const [showPeriod, setShowPeriod] = useState(false)
+
+  const filtered = useMemo(() => filterByPeriod(transactions, period), [transactions, period])
+
+  const totalRevenue  = useMemo(() => filtered.filter(t => t.type==='income').reduce((s,t) => s+t.amount, 0), [filtered])
+  const totalExpenses = useMemo(() => filtered.filter(t => t.type==='expense').reduce((s,t) => s+t.amount, 0), [filtered])
+  const netIncome     = totalRevenue - totalExpenses
+  const periodLabel   = PERIODS.find(([v]) => v === period)?.[1] || 'This Month'
+
+  function saveManual(data)    { addTransaction({ id:Date.now(), ...data }); setShowEntry(false); showToast('Entry saved!') }
+  function handleCSVImport(rows) { addTransactions(rows); setShowEntry(false); showToast(`Imported ${rows.length} transactions!`) }
+  function handleInvoiceSave(data) { addTransaction({ id:Date.now(), ...data }); setShowEntry(false); showToast('Invoice saved!') }
 
   return (
     <div className="flex flex-col h-full relative">
 
       {/* Header */}
       <div className="px-5 pt-6 pb-2 flex-shrink-0">
-        <p className="eyebrow mb-1">Enterprise Planning</p>
-        <p className="screen-title">Finance</p>
+        <p className="eyebrow mb-1">Financial Planning</p>
+        <div className="flex items-center justify-between">
+          <p className="screen-title">Finance</p>
+          <div className="relative">
+            <button onClick={() => setShowPeriod(p => !p)} className="flex items-center gap-1.5 rounded-xl font-semibold"
+              style={{ fontSize:12, padding:'6px 12px', background:'rgba(255,255,255,.85)', border:'1px solid rgba(226,232,240,.9)', color:'#475569', boxShadow:'0 1px 4px rgba(0,0,0,.05)' }}>
+              {periodLabel}
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            {showPeriod && (
+              <div className="absolute right-0 top-full mt-1 rounded-xl overflow-hidden z-30"
+                style={{ background:'rgba(255,255,255,.97)', border:'1px solid rgba(226,232,240,.9)', backdropFilter:'blur(24px)', boxShadow:'0 8px 32px rgba(0,0,0,.12)', minWidth:140 }}
+                onMouseLeave={() => setShowPeriod(false)}>
+                {PERIODS.map(([v,l]) => (
+                  <button key={v} onClick={() => { setPeriod(v); setShowPeriod(false) }}
+                    style={{ display:'block', width:'100%', textAlign:'left', fontSize:12, padding:'9px 14px', fontWeight:600, color: period===v ? '#0f172a' : '#64748b', background: period===v ? 'rgba(5,150,105,.07)' : 'transparent', border:'none', cursor:'pointer' }}>{l}</button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* KPI strip */}
-      <div className="mx-4 mb-4 rounded-2xl px-5 py-3 flex justify-between items-center glass flex-shrink-0">
-        {kpis.map(({ l, v, c }, i, arr) => (
+      <div className="mx-4 mb-3 rounded-2xl px-5 py-3 flex justify-between items-center glass flex-shrink-0">
+        {[
+          { l:'Revenue',  v:fmt(totalRevenue),                                              c:'#059669' },
+          { l:'Expenses', v:fmt(totalExpenses),                                             c:'#dc2626' },
+          { l:'Net',      v:(netIncome>=0?'+':'')+fmt(netIncome),                          c: netIncome>=0?'#059669':'#dc2626' },
+          { l:'Entries',  v:String(filtered.length),                                        c:'#64748b' },
+        ].map(({ l, v, c }) => (
           <div key={l} className="flex flex-col items-center">
             <span style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:15, fontWeight:800, color:c, letterSpacing:'-0.02em' }}>{v}</span>
             <span className="eyebrow">{l}</span>
@@ -347,22 +477,64 @@ export default function FinanceScreen() {
         ))}
       </div>
 
-      {/* Models label */}
-      <div className="px-5 mb-3 flex-shrink-0">
-        <p className="eyebrow">Financial Models</p>
+      {/* Tabs */}
+      <div className="flex mx-4 mb-3 rounded-xl p-1 flex-shrink-0 glass">
+        {[['pl','P&L'],['tx','Transactions'],['bs','Balance Sheet'],['budget','Budget']].map(([k,lbl]) => (
+          <button key={k} onClick={() => setTab(k)} className="flex-1 py-1.5 rounded-lg font-semibold transition-all"
+            style={{ fontSize:11, background:tab===k?'white':'transparent', color:tab===k?'#1e293b':'#94a3b8', boxShadow:tab===k?'0 1px 4px rgba(0,0,0,.08)':'none', whiteSpace:'nowrap' }}>{lbl}</button>
+        ))}
       </div>
 
-      {/* 2-col glass tile grid */}
-      <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-28">
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-          {MODELS.map(m => (
-            <ModelTile key={m.id} {...m} onOpen={() => setActive(m)}/>
-          ))}
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-28">
+        {tab === 'pl'     && <PLView filtered={filtered} />}
+        {tab === 'tx'     && <TxView filtered={filtered} />}
+        {(tab === 'bs' || tab === 'budget') && (
+          <div className="px-4 py-8">
+            <div className="rounded-2xl p-6 text-center" style={{ background:'rgba(255,255,255,.82)', border:'1px solid rgba(255,255,255,.95)', backdropFilter:'blur(12px)' }}>
+              <p style={{ fontSize:28 }}>🔜</p>
+              <p style={{ fontSize:14, fontWeight:700, color:'#1e293b', marginTop:8 }}>{tab==='bs' ? 'Balance Sheet' : 'Budget vs Actual'}</p>
+              <p style={{ fontSize:12, color:'#94a3b8', marginTop:4, lineHeight:1.6 }}>Coming next release — populate your transactions first to generate this view automatically.</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Add Entry button */}
+      <div className="px-4 pb-5 pt-2 flex-shrink-0">
+        <button onClick={() => { setShowEntry(true); setEntryTab('manual') }}
+          className="w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2"
+          style={{ fontSize:13, background:'linear-gradient(135deg,#0369a1,#2563eb)', boxShadow:'0 4px 16px rgba(37,99,235,.28)' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Financial Data
+        </button>
+      </div>
+
+      {/* Data Entry Modal */}
+      {showEntry && (
+        <div className="absolute inset-0 z-50 flex items-end" style={{ background:'rgba(15,23,42,.4)', backdropFilter:'blur(6px)' }} onClick={() => setShowEntry(false)}>
+          <div className="w-full rounded-t-[24px] overflow-hidden" style={{ background:'rgba(255,255,255,.98)', backdropFilter:'blur(32px)', borderTop:'1px solid rgba(255,255,255,.9)', boxShadow:'0 -8px 40px rgba(0,0,0,.14)', animation:'slide-up .26s cubic-bezier(.16,1,.3,1)', maxHeight:'92vh' }} onClick={e => e.stopPropagation()}>
+            <div style={{ width:36, height:4, borderRadius:99, background:'#e2e8f0', margin:'14px auto 0' }}/>
+            <div className="px-6 pt-3 pb-3" style={{ borderBottom:'1px solid #f1f5f9' }}>
+              <p style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:16, fontWeight:800, color:'#0f172a' }}>Add Financial Data</p>
+              <p style={{ fontSize:11, color:'#94a3b8', marginTop:2 }}>Manual entry · CSV import · Invoice scan · Live connection</p>
+            </div>
+            <div className="flex gap-2 px-5 pt-3 pb-1 overflow-x-auto no-scrollbar">
+              {[['manual','Manual'],['csv','Import CSV'],['invoice','Invoice'],['connect','Connect']].map(([k,lbl]) => (
+                <button key={k} onClick={() => setEntryTab(k)}
+                  className="whitespace-nowrap font-semibold rounded-xl flex-shrink-0 transition-all"
+                  style={{ fontSize:12, padding:'6px 14px', background:entryTab===k?'#0f172a':'#f8fafc', color:entryTab===k?'#fff':'#64748b', border:entryTab===k?'1px solid #0f172a':'1px solid #e2e8f0' }}>{lbl}</button>
+              ))}
+            </div>
+            <div className="px-6 pb-8 overflow-y-auto" style={{ maxHeight:'calc(92vh - 160px)' }}>
+              {entryTab === 'manual'  && <ManualForm      onSave={saveManual}        onCancel={() => setShowEntry(false)} />}
+              {entryTab === 'csv'     && <CSVImport        onImport={handleCSVImport} onCancel={() => setShowEntry(false)} />}
+              {entryTab === 'invoice' && <InvoiceUpload    onSave={handleInvoiceSave} onCancel={() => setShowEntry(false)} />}
+              {entryTab === 'connect' && <ConnectSources   onCancel={() => setShowEntry(false)} />}
+            </div>
+          </div>
         </div>
-        <div style={{ height:16 }}/>
-      </div>
-
-      {active && <Drawer card={active} onClose={() => setActive(null)}/>}
+      )}
     </div>
   )
 }
