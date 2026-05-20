@@ -3,13 +3,13 @@ import BottomNav from './components/layout/BottomNav'
 import Sidebar   from './components/layout/Sidebar'
 import Toast     from './components/ui/Toast'
 
-import LoginScreen    from './screens/LoginScreen'
+import LoginScreen     from './screens/LoginScreen'
 import DashboardScreen from './screens/DashboardScreen'
-import CRMScreen      from './screens/CRMScreen'
-import ProjectsScreen from './screens/ProjectsScreen'
-import FinanceScreen  from './screens/FinanceScreen'
-import ChatScreen     from './screens/ChatScreen'
-import MoreScreen     from './screens/MoreScreen'
+import CRMScreen       from './screens/CRMScreen'
+import ProjectsScreen  from './screens/ProjectsScreen'
+import FinanceScreen   from './screens/FinanceScreen'
+import ChatScreen      from './screens/ChatScreen'
+import MoreScreen      from './screens/MoreScreen'
 
 const SCREENS = {
   login:    LoginScreen,
@@ -25,34 +25,24 @@ export default function App() {
   const { currentScreen, isAuthenticated } = useAppStore()
 
   return (
-    <div className="app-shell">
-      {/* Cinematic ambient atmosphere */}
-      <div className="ambient-orbs" aria-hidden="true">
-        {/* Violet orb — upper right */}
-        <div style={{
-          position:'absolute', top:'-10%', right:'10%',
-          width:'45vw', height:'45vw',
-          background:'radial-gradient(ellipse, rgba(124,58,237,.07) 0%, transparent 65%)',
-          pointerEvents:'none',
-        }}/>
+    <>
+      {/* Fixed atmospheric background — glass cards blur against this */}
+      <div className="app-bg" aria-hidden="true" />
+
+      <div className="app-shell" style={{ position: 'relative', zIndex: 1 }}>
+        {isAuthenticated && <Sidebar />}
+
+        <div className={`flex-1 flex flex-col overflow-hidden ${isAuthenticated ? 'md:ml-64' : ''}`}>
+          {Object.entries(SCREENS).map(([id, Screen]) => (
+            <div key={id} className={`screen ${currentScreen === id ? 'screen-active' : ''}`}>
+              <Screen />
+            </div>
+          ))}
+        </div>
+
+        {isAuthenticated && <BottomNav />}
+        <Toast />
       </div>
-
-      {/* Desktop sidebar — only shown when authenticated */}
-      {isAuthenticated && <Sidebar />}
-
-      {/* Screen content — offset by sidebar on desktop */}
-      <div className={`flex-1 flex flex-col overflow-hidden ${isAuthenticated ? 'md:ml-64' : ''}`}>
-        {Object.entries(SCREENS).map(([id, Screen]) => (
-          <div key={id} className={`screen ${currentScreen === id ? 'screen-active' : ''}`}>
-            <Screen />
-          </div>
-        ))}
-      </div>
-
-      {/* Mobile bottom nav */}
-      {isAuthenticated && <BottomNav />}
-
-      <Toast />
-    </div>
+    </>
   )
 }
