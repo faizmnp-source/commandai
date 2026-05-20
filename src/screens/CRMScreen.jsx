@@ -41,27 +41,27 @@ function DealCard({ deal, onMove }) {
   const idx=STAGES.indexOf(deal.stage), meta=STAGE_META[deal.stage]
   return (
     <div onClick={()=>setOpen(o=>!o)} className="rounded-xl cursor-pointer active:scale-[.97] transition-all"
-      style={{ background:'rgba(255,255,255,.82)', border:'1px solid rgba(255,255,255,.95)', backdropFilter:'blur(16px)', boxShadow:'0 2px 10px rgba(0,0,0,.06), inset 0 1px 0 #fff' }}>
+      style={{ background:'rgba(14,30,58,.75)', border:'1px solid rgba(255,255,255,.07)', backdropFilter:'blur(16px)', boxShadow:'0 2px 10px rgba(0,0,0,.3)' }}>
       <div style={{ height:2.5, borderRadius:'8px 8px 0 0', background:`linear-gradient(90deg,${meta.color},${meta.color}55)` }}/>
       <div className="p-3">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold flex-shrink-0" style={{ fontSize:9, background:avatarBg(deal.avatar) }}>{deal.avatar}</div>
             <div className="min-w-0">
-              <p className="font-semibold truncate" style={{ fontSize:12, color:'#1e293b' }}>{deal.name}</p>
-              <p className="truncate" style={{ fontSize:10, color:'#94a3b8' }}>{deal.contact}</p>
+              <p className="font-semibold truncate" style={{ fontSize:12, color:'rgba(226,232,240,.85)' }}>{deal.name}</p>
+              <p className="truncate" style={{ fontSize:10, color:'rgba(100,116,139,.5)' }}>{deal.contact}</p>
             </div>
           </div>
           <p className="font-bold flex-shrink-0" style={{ fontSize:13, color:meta.color }}>${(deal.value/1000).toFixed(0)}k</p>
         </div>
         <div className="flex items-center justify-between">
           <span className="font-semibold rounded-md px-1.5 py-0.5" style={{ fontSize:9, background:meta.bg, color:meta.color, border:`1px solid ${meta.border}` }}>{deal.stage}</span>
-          <span style={{ fontSize:9, color:'#cbd5e1' }}>{deal.daysAgo===0?'Today':`${deal.daysAgo}d ago`}</span>
+          <span style={{ fontSize:9, color:'rgba(100,116,139,.4)' }}>{deal.daysAgo===0?'Today':`${deal.daysAgo}d ago`}</span>
         </div>
         {open&&(
-          <div className="mt-2 pt-2 flex gap-1.5 flex-wrap" style={{ borderTop:'1px solid #f1f5f9' }}>
-            {idx>0&&<button onClick={e=>{e.stopPropagation();onMove(deal.id,-1)}} className="rounded-lg font-semibold" style={{ fontSize:10, background:'#f1f5f9', color:'#475569', padding:'4px 8px' }}>← {STAGES[idx-1]}</button>}
-            {idx<STAGES.length-1&&<button onClick={e=>{e.stopPropagation();onMove(deal.id,1)}} className="text-white rounded-lg font-semibold" style={{ fontSize:10, background:meta.color, padding:'4px 8px' }}>{STAGES[idx+1]} →</button>}
+          <div className="mt-2 pt-2 flex gap-1.5 flex-wrap" style={{ borderTop:'1px solid rgba(255,255,255,.06)' }}>
+            {idx>0&&<button onClick={e=>{e.stopPropagation();onMove(deal.id,-1)}} className="rounded-lg font-semibold" style={{ fontSize:10, background:'rgba(255,255,255,.08)', color:'rgba(148,163,184,.7)', padding:'4px 8px', border:'none' }}>← {STAGES[idx-1]}</button>}
+            {idx<STAGES.length-1&&<button onClick={e=>{e.stopPropagation();onMove(deal.id,1)}} className="text-white rounded-lg font-semibold" style={{ fontSize:10, background:meta.color, padding:'4px 8px', border:'none' }}>{STAGES[idx+1]} →</button>}
           </div>
         )}
       </div>
@@ -79,12 +79,12 @@ function PipelineView({ deals, onMove }) {
             <div className="flex items-center justify-between mb-2 px-1">
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full" style={{ background:meta.color }}/>
-                <span className="font-semibold" style={{ fontSize:11, color:'#475569' }}>{stage}</span>
+                <span className="font-semibold" style={{ fontSize:11, color:'rgba(148,163,184,.7)' }}>{stage}</span>
               </div>
               <span className="font-bold" style={{ fontSize:10, color:meta.color }}>${(total/1000).toFixed(0)}k</span>
             </div>
             <div className="space-y-2">
-              {sd.length===0&&<div className="rounded-xl flex items-center justify-center" style={{ height:52, border:'1.5px dashed #e2e8f0' }}><span style={{ fontSize:10, color:'#cbd5e1' }}>Empty</span></div>}
+              {sd.length===0&&<div className="rounded-xl flex items-center justify-center" style={{ height:52, border:'1.5px dashed rgba(255,255,255,.08)' }}><span style={{ fontSize:10, color:'rgba(100,116,139,.4)' }}>Empty</span></div>}
               {sd.map(d=><DealCard key={d.id} deal={d} onMove={onMove}/>)}
             </div>
           </div>
@@ -106,11 +106,11 @@ function ContactsView({ contacts }) {
       <div className="space-y-2">
         {filtered.map(c=>{const sm=STATUS_META[c.status]; return (
           <div key={c.id} className="rounded-xl flex items-center gap-3 px-4 py-3"
-            style={{ background:'rgba(255,255,255,.82)', border:'1px solid rgba(255,255,255,.95)', backdropFilter:'blur(16px)', boxShadow:'0 2px 10px rgba(0,0,0,.06), inset 0 1px 0 #fff' }}>
+            style={{ background:'rgba(14,30,58,.75)', border:'1px solid rgba(255,255,255,.07)', backdropFilter:'blur(16px)', boxShadow:'0 2px 10px rgba(0,0,0,.3)' }}>
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ background:avatarBg(c.avatar) }}>{c.avatar}</div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold" style={{ fontSize:13, color:'#1e293b' }}>{c.name}</p>
-              <p style={{ fontSize:11, color:'#94a3b8' }}>{c.role} · {c.company}</p>
+              <p className="font-semibold" style={{ fontSize:13, color:'rgba(226,232,240,.85)' }}>{c.name}</p>
+              <p style={{ fontSize:11, color:'rgba(100,116,139,.5)' }}>{c.role} · {c.company}</p>
             </div>
             <span className="font-bold rounded-full flex-shrink-0" style={{ fontSize:10, background:sm.bg, color:sm.color, border:`1px solid ${sm.border}`, padding:'3px 10px' }}>{c.status}</span>
           </div>
@@ -169,7 +169,7 @@ export default function CRMScreen() {
       <div className="flex mx-4 mb-3 rounded-xl p-1 flex-shrink-0 glass">
         {[['pipeline','Pipeline'],['contacts','Contacts']].map(([k,lbl])=>(
           <button key={k} onClick={()=>setTab(k)} className="flex-1 py-1.5 rounded-lg font-semibold transition-all"
-            style={{ fontSize:13, background:tab===k?'white':'transparent', color:tab===k?'#1e293b':'#94a3b8', boxShadow:tab===k?'0 1px 4px rgba(0,0,0,.08)':'none' }}>{lbl}</button>
+            style={{ fontSize:13, background:tab===k?'rgba(255,255,255,.1)':'transparent', color:tab===k?'rgba(226,232,240,.9)':'rgba(100,116,139,.5)', boxShadow:tab===k?'0 1px 4px rgba(0,0,0,.3)':'none', border:tab===k?'1px solid rgba(255,255,255,.08)':'1px solid transparent' }}>{lbl}</button>
         ))}
       </div>
 
@@ -185,10 +185,10 @@ export default function CRMScreen() {
       )}
 
       {showAdd&&(
-        <div className="absolute inset-0 z-50 flex items-end" style={{ background:'rgba(15,23,42,.4)', backdropFilter:'blur(6px)' }} onClick={()=>setShowAdd(false)}>
-          <div className="w-full rounded-t-[24px] p-6" style={{ background:'rgba(255,255,255,.96)', backdropFilter:'blur(24px)', borderTop:'1px solid rgba(255,255,255,.9)', boxShadow:'0 -8px 32px rgba(0,0,0,.12)', animation:'slide-up .26s cubic-bezier(.16,1,.3,1)' }} onClick={e=>e.stopPropagation()}>
-            <div style={{ width:36, height:4, borderRadius:99, background:'#e2e8f0', margin:'0 auto 20px' }}/>
-            <p style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:16, fontWeight:800, color:'#0f172a', marginBottom:16 }}>New Deal</p>
+        <div className="absolute inset-0 z-50 flex items-end" style={{ background:'rgba(0,0,0,.7)', backdropFilter:'blur(8px)' }} onClick={()=>setShowAdd(false)}>
+          <div className="w-full rounded-t-[24px] p-6" style={{ background:'rgba(10,18,35,.98)', backdropFilter:'blur(24px)', borderTop:'1px solid rgba(255,255,255,.08)', boxShadow:'0 -12px 48px rgba(0,0,0,.7)', animation:'slide-up .26s cubic-bezier(.16,1,.3,1)' }} onClick={e=>e.stopPropagation()}>
+            <div style={{ width:36, height:4, borderRadius:99, background:'rgba(255,255,255,.1)', margin:'0 auto 20px' }}/>
+            <p style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:16, fontWeight:800, color:'rgba(248,250,252,.95)', marginBottom:16 }}>New Deal</p>
             <div className="space-y-3">
               <input className="inp" placeholder="Company name *" value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))}/>
               <input className="inp" placeholder="Contact person" value={form.contact} onChange={e=>setForm(p=>({...p,contact:e.target.value}))}/>

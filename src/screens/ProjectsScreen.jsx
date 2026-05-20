@@ -36,24 +36,24 @@ function TaskCard({ task, onMove }) {
   const idx=COLS.indexOf(task.col), meta=COL_META[task.col], pm=PRI_META[task.priority]
   return (
     <div onClick={()=>setOpen(o=>!o)} className="rounded-xl cursor-pointer active:scale-[.97] transition-all"
-      style={{ background:'rgba(255,255,255,.82)', border:'1px solid rgba(255,255,255,.95)', backdropFilter:'blur(16px)', boxShadow:'0 2px 10px rgba(0,0,0,.06), inset 0 1px 0 #fff' }}>
+      style={{ background:'rgba(14,30,58,.75)', border:'1px solid rgba(255,255,255,.07)', backdropFilter:'blur(16px)', boxShadow:'0 2px 10px rgba(0,0,0,.3)' }}>
       <div style={{ height:2.5, borderRadius:'8px 8px 0 0', background:`linear-gradient(90deg,${meta.color},${meta.color}55)` }}/>
       <div className="p-3">
         <div className="flex items-start gap-2 mb-2">
-          <p className="flex-1 font-semibold leading-snug" style={{ fontSize:12, color:'#1e293b' }}>{task.title}</p>
+          <p className="flex-1 font-semibold leading-snug" style={{ fontSize:12, color:'rgba(226,232,240,.85)' }}>{task.title}</p>
           <span className="font-bold rounded-md flex-shrink-0" style={{ fontSize:9, background:pm.bg, color:pm.color, border:`1px solid ${pm.border}`, padding:'2px 6px' }}>{task.priority}</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded-lg flex items-center justify-center text-white font-bold flex-shrink-0"
             style={{ fontSize:9, background:avatarBg(task.assignee) }}>{task.assignee}</div>
-          <span className="flex-1 truncate" style={{ fontSize:10, color:'#94a3b8' }}>{task.project}</span>
-          <span style={{ fontSize:9, color:'#cbd5e1' }}>{task.due}</span>
+          <span className="flex-1 truncate" style={{ fontSize:10, color:'rgba(100,116,139,.5)' }}>{task.project}</span>
+          <span style={{ fontSize:9, color:'rgba(100,116,139,.4)' }}>{task.due}</span>
         </div>
         {open&&(
-          <div className="mt-2 pt-2 flex gap-1.5 flex-wrap" style={{ borderTop:'1px solid #f1f5f9' }}>
-            {idx>0&&<button onClick={e=>{e.stopPropagation();onMove(task.id,-1)}} className="rounded-lg font-semibold" style={{ fontSize:10, background:'#f1f5f9', color:'#475569', padding:'4px 8px' }}>← {COLS[idx-1]}</button>}
+          <div className="mt-2 pt-2 flex gap-1.5 flex-wrap" style={{ borderTop:'1px solid rgba(255,255,255,.06)' }}>
+            {idx>0&&<button onClick={e=>{e.stopPropagation();onMove(task.id,-1)}} className="rounded-lg font-semibold" style={{ fontSize:10, background:'rgba(255,255,255,.08)', color:'rgba(148,163,184,.7)', padding:'4px 8px', border:'none' }}>← {COLS[idx-1]}</button>}
             {idx<COLS.length-1&&<button onClick={e=>{e.stopPropagation();onMove(task.id,1)}} className="text-white rounded-lg font-semibold" style={{ fontSize:10, background:meta.color, padding:'4px 8px' }}>{COLS[idx+1]} →</button>}
-            {task.col==='Done'&&<span className="font-semibold" style={{ fontSize:10, color:'#059669', padding:'4px 0' }}>✓ Completed</span>}
+            {task.col==='Done'&&<span className="font-semibold" style={{ fontSize:10, color:'#34d399', padding:'4px 0' }}>✓ Completed</span>}
           </div>
         )}
       </div>
@@ -72,12 +72,12 @@ function KanbanView({ tasks, onMove }) {
             <div className="flex items-center justify-between mb-2 px-1">
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full" style={{ background:meta.color }}/>
-                <span className="font-semibold" style={{ fontSize:11, color:'#475569' }}>{col}</span>
+                <span className="font-semibold" style={{ fontSize:11, color:'rgba(148,163,184,.7)' }}>{col}</span>
               </div>
               <span className="font-bold rounded-full px-1.5" style={{ fontSize:10, color:meta.color, background:meta.bg, border:`1px solid ${meta.border}` }}>{ct.length}</span>
             </div>
             <div className="space-y-2">
-              {ct.length===0&&<div className="rounded-xl flex items-center justify-center" style={{ height:52, border:'1.5px dashed #e2e8f0' }}><span style={{ fontSize:10, color:'#cbd5e1' }}>Empty</span></div>}
+              {ct.length===0&&<div className="rounded-xl flex items-center justify-center" style={{ height:52, border:'1.5px dashed rgba(255,255,255,.08)' }}><span style={{ fontSize:10, color:'rgba(100,116,139,.4)' }}>Empty</span></div>}
               {ct.map(t=><TaskCard key={t.id} task={t} onMove={onMove}/>)}
             </div>
           </div>
@@ -99,10 +99,9 @@ function ListView({ tasks }) {
           <button key={p} onClick={()=>setFilter(p)}
             className="whitespace-nowrap font-semibold rounded-full transition-all"
             style={{ fontSize:11, padding:'5px 12px',
-              background:filter===p?'rgba(124,58,237,.12)':'rgba(255,255,255,.7)',
-              color:filter===p?'#7c3aed':'#64748b',
-              border:filter===p?'1px solid rgba(124,58,237,.3)':'1px solid rgba(226,232,240,.9)',
-              backdropFilter:'blur(8px)' }}>{p}</button>
+              background:filter===p?'rgba(124,58,237,.15)':'rgba(255,255,255,.05)',
+              color:filter===p?'#a78bfa':'rgba(100,116,139,.6)',
+              border:filter===p?'1px solid rgba(124,58,237,.3)':'1px solid rgba(255,255,255,.07)' }}>{p}</button>
         ))}
       </div>
       <div>
@@ -110,17 +109,17 @@ function ListView({ tasks }) {
           <div key={col} className="mb-4">
             <div className="flex items-center gap-2 mb-1.5">
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background:COL_META[col].color }}/>
-              <span className="font-bold uppercase" style={{ fontSize:10, letterSpacing:'0.08em', color:'#94a3b8' }}>{col}</span>
-              <div className="flex-1" style={{ height:1, background:'rgba(0,0,0,.06)' }}/>
+              <span className="font-bold uppercase" style={{ fontSize:10, letterSpacing:'0.08em', color:'rgba(100,116,139,.5)' }}>{col}</span>
+              <div className="flex-1" style={{ height:1, background:'rgba(255,255,255,.06)' }}/>
             </div>
             <div className="space-y-2">
               {filtered.filter(t=>t.col===col).map(t=>{const pm=PRI_META[t.priority];return(
                 <div key={t.id} className="rounded-xl flex items-center gap-3 px-4 py-3"
-                  style={{ background:'rgba(255,255,255,.82)', border:'1px solid rgba(255,255,255,.95)', backdropFilter:'blur(16px)', boxShadow:'0 2px 10px rgba(0,0,0,.06), inset 0 1px 0 #fff' }}>
+                  style={{ background:'rgba(14,30,58,.75)', border:'1px solid rgba(255,255,255,.07)', backdropFilter:'blur(16px)', boxShadow:'0 2px 10px rgba(0,0,0,.3)' }}>
                   <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background:pm.color }}/>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold truncate" style={{ fontSize:12, color:'#1e293b' }}>{t.title}</p>
-                    <p style={{ fontSize:10, color:'#94a3b8' }}>{t.project} · {t.due}</p>
+                    <p style={{ fontSize:10, color:'rgba(100,116,139,.5)' }}>{t.project} · {t.due}</p>
                   </div>
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold flex-shrink-0"
                     style={{ fontSize:9, background:avatarBg(t.assignee) }}>{t.assignee}</div>
@@ -194,7 +193,7 @@ export default function ProjectsScreen() {
       <div className="flex mx-4 mb-3 rounded-xl p-1 flex-shrink-0 glass">
         {[['kanban','Kanban'],['list','List']].map(([k,lbl])=>(
           <button key={k} onClick={()=>setView(k)} className="flex-1 py-1.5 rounded-lg font-semibold transition-all"
-            style={{ fontSize:13, background:view===k?'white':'transparent', color:view===k?'#1e293b':'#94a3b8', boxShadow:view===k?'0 1px 4px rgba(0,0,0,.08)':'none' }}>{lbl}</button>
+            style={{ fontSize:13, background:view===k?'rgba(255,255,255,.1)':'transparent', color:view===k?'rgba(226,232,240,.9)':'rgba(100,116,139,.5)', boxShadow:view===k?'0 1px 4px rgba(0,0,0,.3)':'none', border:view===k?'1px solid rgba(255,255,255,.08)':'1px solid transparent' }}>{lbl}</button>
         ))}
       </div>
 
@@ -211,10 +210,10 @@ export default function ProjectsScreen() {
 
       {/* Add Task modal */}
       {showAdd&&(
-        <div className="absolute inset-0 z-50 flex items-end" style={{ background:'rgba(15,23,42,.4)', backdropFilter:'blur(6px)' }} onClick={()=>setShowAdd(false)}>
-          <div className="w-full rounded-t-[24px] p-6" style={{ background:'rgba(255,255,255,.96)', backdropFilter:'blur(24px)', borderTop:'1px solid rgba(255,255,255,.9)', boxShadow:'0 -8px 32px rgba(0,0,0,.12)', animation:'slide-up .26s cubic-bezier(.16,1,.3,1)' }} onClick={e=>e.stopPropagation()}>
-            <div style={{ width:36, height:4, borderRadius:99, background:'#e2e8f0', margin:'0 auto 20px' }}/>
-            <p style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:16, fontWeight:800, color:'#0f172a', marginBottom:16 }}>New Task</p>
+        <div className="absolute inset-0 z-50 flex items-end" style={{ background:'rgba(0,0,0,.7)', backdropFilter:'blur(8px)' }} onClick={()=>setShowAdd(false)}>
+          <div className="w-full rounded-t-[24px] p-6" style={{ background:'rgba(10,18,35,.98)', backdropFilter:'blur(24px)', borderTop:'1px solid rgba(255,255,255,.08)', boxShadow:'0 -12px 48px rgba(0,0,0,.7)', animation:'slide-up .26s cubic-bezier(.16,1,.3,1)' }} onClick={e=>e.stopPropagation()}>
+            <div style={{ width:36, height:4, borderRadius:99, background:'rgba(255,255,255,.1)', margin:'0 auto 20px' }}/>
+            <p style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:16, fontWeight:800, color:'rgba(248,250,252,.95)', marginBottom:16 }}>New Task</p>
             <div className="space-y-3">
               <input className="inp" placeholder="Task title *" value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
               <select className="inp" value={form.project} onChange={e=>setForm(p=>({...p,project:e.target.value}))}>
